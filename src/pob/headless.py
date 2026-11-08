@@ -51,7 +51,8 @@ def luajit_supports_compound_assign(luajit: Optional[str]) -> bool:
 
 def find_environment() -> Dict[str, Any]:
     src = Path(os.environ.get("POE2_POB_SRC", HOME / "PathOfBuilding-PoE2" / "src"))
-    luajit = os.environ.get("POE2_LUAJIT") or shutil.which("luajit")
+    pinned = HOME / "LuaJIT" / "src" / "luajit"  # built by scripts/setup_headless_pob.sh
+    luajit = os.environ.get("POE2_LUAJIT") or (str(pinned) if pinned.is_file() else None) or shutil.which("luajit")
     utf8 = HOME / "lua_modules" / "lib" / "lua" / "5.1" / "lua-utf8.so"
     return {
         "luajit": luajit,

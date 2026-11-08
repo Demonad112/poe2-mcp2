@@ -71,11 +71,41 @@ end
 
 handlers.load_xml = function(p)
   if type(p.xml) ~= 'string' or #p.xml == 0 then error('xml (string) required') end
+  -- PoB2 silently rejects other roots (e.g. PoE1's <PathOfBuilding>); fail loudly instead.
+  if not p.xml:find('<PathOfBuilding2', 1, true) then
+    error('XML root must be <PathOfBuilding2> (this looks like a PoE1 or non-PoB2 export)')
+  end
+  local before = build and build.outputRevision
   loadBuildFromXML(p.xml, p.name or 'poe2-mcp')
   build = __mainObject__.main.modes['BUILD'] -- re-bind: SetMode replaces the mode table state
   recalc()
   require_build()
+  if not build.targetVersion then
+    error('build needs conversion (targetVersion missing/unsupported; PoB2 exports use targetVersion="0_1")')
+  end
+  local xl = tonumber(p.xml:match('<Build[^>]-%slevel="(%d+)"'))
+  if xl and build.characterLevel ~= xl and not build.characterLevelAutoMode then
+    error('build did not load (level mismatch: xml ' .. xl .. ' vs engine ' .. tostring(build.characterLevel) .. ')')
+  end
   return { ok = true, loaded = true }
+end
+
+-- Fresh PoB2-native build (optionally set the level). Useful as a baseline.
+handlers.new_build = function(p)
+  newBuild()
+  build = __mainObject__.main.modes['BUILD']
+  if p.level then handlers.set_level({ level = p.level }) end
+  recalc()
+  require_build()
+  return { ok = true }
+end
+
+-- Serialise the current build back to PoB2 XML (same writer PoB uses for saving).
+handlers.export_xml = function()
+  require_build()
+  local xml = build:SaveDB('poe2-mcp') -- returns the composed XML text
+  if type(xml) ~= 'string' or #xml == 0 then error('export failed') end
+  return { ok = true, xml = xml }
 end
 
 handlers.get_stats = function(p)
@@ -112,10 +142,14 @@ handlers.set_level = function(p)
   require_build()
   local lvl = tonumber(p.level)
   if not lvl then error('level (number) required') end
-  build.characterLevel = lvl
+  -- Mirror PoB's own level EditControl handler (Modules/Build.lua): manual mode, clamp 1..100.
+  build.characterLevel = math.min(math.max(lvl, 1), 100)
+  build.characterLevelAutoMode = false
   if build.controls and build.controls.characterLevel then
-    build.controls.characterLevel:SetText(tostring(lvl))
+    build.controls.characterLevel:SetText(build.characterLevel)
   end
+  build.configTab:BuildModList()
+  build.modFlag = true
   recalc()
   return handlers.get_stats(p)
 end
