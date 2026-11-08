@@ -38,6 +38,17 @@ def decode_pob_code(code: str) -> str:
     return zlib.decompress(base64.b64decode(raw)).decode("utf-8")
 
 
+def luajit_supports_compound_assign(luajit: Optional[str]) -> bool:
+    """PoB2 source uses ``x += 1``; mainline LuaJIT (e.g. Ubuntu apt) cannot parse it."""
+    if not luajit:
+        return False
+    try:
+        r = subprocess.run([luajit, "-e", "local c=1 c+=1"], capture_output=True, timeout=10)
+        return r.returncode == 0
+    except Exception:
+        return False
+
+
 def find_environment() -> Dict[str, Any]:
     src = Path(os.environ.get("POE2_POB_SRC", HOME / "PathOfBuilding-PoE2" / "src"))
     luajit = os.environ.get("POE2_LUAJIT") or shutil.which("luajit")
@@ -48,7 +59,13 @@ def find_environment() -> Dict[str, Any]:
         "pob_src_present": (src / "HeadlessWrapper.lua").is_file(),
         "lua_utf8": str(utf8) if utf8.is_file() else None,
         "bridge": str(BRIDGE),
-        "ready": bool(luajit and (src / "HeadlessWrapper.lua").is_file() and BRIDGE.is_file()),
+        "luajit_compound_assign": luajit_supports_compound_assign(luajit),
+        "ready": bool(
+            luajit
+            and (src / "HeadlessWrapper.lua").is_file()
+            and BRIDGE.is_file()
+            and luajit_supports_compound_assign(luajit)
+        ),
         "setup": "bash scripts/setup_headless_pob.sh",
     }
 
