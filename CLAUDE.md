@@ -15,6 +15,12 @@ answer directly.
      ```bash
      PY=$(bash scripts/cloud_setup.sh) && "$PY" scripts/pob_cli.py analyze <scratchpad>/build.txt
      ```
+2b. **Always run the headless PoB calc** on the same file (`headless_pob_calc`, or CLI
+   `tool headless_pob_calc '{"pob_file_path":"<scratchpad>/build.txt"}'`) when `headless_pob_status`
+   reports `ready: true` (a SessionStart hook builds it in the background; if not ready yet, run
+   `bash scripts/setup_headless_pob.sh`). Use its stats (DPS, EHP, res, Spirit) as the PoB-exact
+   baseline for every answer; pass `fields` to keep output small. Skip it for questions that
+   don't need numbers.
 3. **Answer the question using the data tools**, not memory. Via MCP call the tool; via CLI:
    ```bash
    "$PY" scripts/pob_cli.py tool <tool_name> '<json args>'     # list names: ... tools
