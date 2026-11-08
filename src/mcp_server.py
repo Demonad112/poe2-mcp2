@@ -468,6 +468,10 @@ class PoE2BuildOptimizerMCP:
                 return await self._handle_export_pob(arguments)
             elif name == "get_pob_code":
                 return await self._handle_get_pob_code(arguments)
+            elif name == "headless_pob_status":
+                return await self._handle_headless_pob_status(arguments)
+            elif name == "headless_pob_calc":
+                return await self._handle_headless_pob_calc(arguments)
             elif name == "pob_status":
                 return await self._handle_pob_status(arguments)
             elif name == "pob_install_addon":
@@ -790,6 +794,25 @@ class PoE2BuildOptimizerMCP:
                     },
                 ),
                 # Live Path of Building Bridge (TCP to a running PoB instance)
+                types.Tool(
+                    name="headless_pob_status",
+                    description="Check the headless Path of Building 2 calc engine (luajit + PathOfBuilding-PoE2 checkout). Works in cloud sessions, no desktop PoB needed. If not ready, run `bash scripts/setup_headless_pob.sh`.",
+                    inputSchema={"type": "object", "properties": {}, "required": []},
+                ),
+                types.Tool(
+                    name="headless_pob_calc",
+                    description="PoB-exact stats (DPS, EHP, resists, Spirit...) for a build using the headless PoB2 engine. Pass pob_file_path (file containing the PoB export code or XML). Optional config overrides (PoB Configuration-tab input keys, e.g. enemyLevel, conditionEnemyShocked), level, and a fields filter.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "pob_file_path": {"type": "string", "description": "File with PoB code or XML"},
+                            "config": {"type": "object", "description": "PoB config input overrides"},
+                            "level": {"type": "integer", "description": "Character level override"},
+                            "fields": {"type": "array", "items": {"type": "string"}, "description": "Only return these stat keys (e.g. TotalDPS, CombinedDPS, Life, EnergyShield, Spirit)"},
+                        },
+                        "required": ["pob_file_path"],
+                    },
+                ),
                 types.Tool(
                     name="pob_status",
                     description="Check the live Path of Building bridge: whether PoB (PoE2) is installed, whether the MCP Bridge addon is deployed and Launch.lua is patched, and whether a running PoB is reachable on 127.0.0.1:49085 right now. Use this first before other pob_* tools.",
@@ -2197,6 +2220,27 @@ Tracked at https://github.com/HivemindOverlord/poe2-mcp/issues/61.
         self.pob_client = PoBClient.find_bridge() or PoBClient(port=port)
         return self.pob_client
 
+    async def _handle_headless_pob_status(self, args: dict) -> List[types.TextContent]:
+        try:
+            from .pob import headless
+        except ImportError:
+            from src.pob import headless
+        return [types.TextContent(type="text", text=json.dumps(headless.find_environment(), indent=2))]
+
+    async def _handle_headless_pob_calc(self, args: dict) -> List[types.TextContent]:
+        try:
+            from .pob import headless
+        except ImportError:
+            from src.pob import headless
+        try:
+            raw = Path(args["pob_file_path"]).read_text(encoding="utf-8")
+            res = await asyncio.to_thread(
+                headless.calc, raw, args.get("config"), args.get("fields"), args.get("level")
+            )
+            return [types.TextContent(type="text", text=json.dumps(res, indent=2, default=str))]
+        except Exception as e:
+            return [types.TextContent(type="text", text=f"headless_pob_calc error: {e}")]
+
     async def _handle_pob_status(self, args: dict) -> List[types.TextContent]:
         """Report PoB install / addon / live-bridge reachability."""
         try:
@@ -2594,7 +2638,8 @@ poe.ninja migrated their builds/character pages to a client-side rendered SPA at
             return [
                 types.TextContent(
                     type="text",
-                    text="Trade search requires POESESSID cookie. Please set it up:\n\n"
+                    text="Trade search requires POESESSID cookie. Headless/cloud: export POESESSID=<cookie> "
+                    "in the environment (and allow www.pathofexile.com). Otherwise:\n\n"
                     "**AUTOMATED SETUP (Recommended - 2 minutes):**\n\n"
                     "Use the `setup_trade_auth` tool to automatically configure authentication.\n"
                     "Just run it and log in when the browser opens - the tool will handle the rest!\n\n"
@@ -2620,6 +2665,13 @@ poe.ninja migrated their builds/character pages to a client-side rendered SPA at
                 league=league, character_needs=character_needs, max_price_chaos=max_price_chaos
             )
 
+            if not results and getattr(self.trade_api, "last_error", None):
+                return [
+                    types.TextContent(
+                        type="text",
+                        text=f"Trade lookup failed (not an empty market): {self.trade_api.last_error}",
+                    )
+                ]
             if not results:
                 return [
                     types.TextContent(

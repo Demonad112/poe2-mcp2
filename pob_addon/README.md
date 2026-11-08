@@ -1,6 +1,6 @@
 # MCP Bridge Addon for Path of Building (PoE2)
 
-This addon enables bidirectional communication between [poe2-mcp](https://github.com/HivemindOverlord/poe2-mcp) and Path of Building, allowing AI-powered build analysis with visual feedback.
+This addon enables bidirectional communication between [poe2-mcp](https://github.com/Demonad112/poe2-mcp2) and Path of Building, allowing AI-powered build analysis with visual feedback.
 
 ## Features
 
@@ -14,7 +14,7 @@ This addon enables bidirectional communication between [poe2-mcp](https://github
 
 ### Quick Install
 
-1. Download `MCP_PoB_Addon.zip` from the [releases](https://github.com/HivemindOverlord/poe2-mcp/releases) or from `pob_addon/` folder
+1. Download `MCP_PoB_Addon.zip` from the [releases](https://github.com/Demonad112/poe2-mcp2/releases) or from `pob_addon/` folder
 2. Extract the zip file
 3. Run `install.bat`
 4. Follow the prompts
@@ -197,4 +197,4 @@ MIT License - Same as poe2-mcp
 ## Credits
 
 - Path of Building (PoE2 Fork): https://github.com/PathOfBuildingCommunity/PathOfBuilding-PoE2
-- poe2-mcp: https://github.com/HivemindOverlord/poe2-mcp
+- poe2-mcp: https://github.com/Demonad112/poe2-mcp2

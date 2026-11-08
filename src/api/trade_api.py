@@ -36,6 +36,8 @@ class TradeAPI:
         poesessid: Optional[str] = None,
     ):
         self.base_url = "https://www.pathofexile.com"
+        self.last_search_url: Optional[str] = None  # shareable trade-site link for the last search
+        self.last_error: Optional[str] = None  # surfaced by callers instead of a silent empty result
         self.cache_manager = cache_manager
         self.rate_limiter = rate_limiter or RateLimiter(
             rate_limit=2
@@ -89,6 +91,7 @@ class TradeAPI:
             await self.rate_limiter.acquire()
 
             # Build search query
+            self.last_error = None
             query = self._build_search_query(filters)
 
             # Perform search - Note: /api/trade2/search/poe2/{league}
@@ -106,6 +109,9 @@ class TradeAPI:
             search_result = response.json()
             result_ids = search_result.get("result", [])[:limit]
             query_id = search_result.get("id")  # Get query ID for fetching
+            self.last_search_url = (
+                f"{self.base_url}/trade2/search/poe2/{league}/{query_id}" if query_id else None
+            )
 
             if not result_ids:
                 logger.info("No items found matching criteria")
@@ -120,10 +126,22 @@ class TradeAPI:
             return items
 
         except httpx.HTTPStatusError as e:
-            logger.error(f"Trade API HTTP error: {e.response.status_code} - {e.response.text}")
+            code = e.response.status_code
+            logger.error(f"Trade API HTTP error: {code} - {e.response.text}")
+            if code in (401, 403):
+                self.last_error = (
+                    f"HTTP {code}: trade site rejected the request (Cloudflare/auth). "
+                    "Set a valid POESESSID (env var POESESSID or setup_trade_auth) and make sure "
+                    "www.pathofexile.com is allowed by the network policy."
+                )
+            elif code == 429:
+                self.last_error = "HTTP 429: trade rate limit hit; retry later."
+            else:
+                self.last_error = f"HTTP {code} from trade API."
             return []
         except Exception as e:
             logger.error(f"Trade API error: {e}")
+            self.last_error = f"Trade API error: {e}"
             return []
 
     async def _fetch_item_details(
@@ -235,6 +253,25 @@ class TradeAPI:
         # Stats/mods filter
         if "stats" in filters and filters["stats"]:
             query["query"]["stats"] = self._build_stat_filters(filters["stats"])
+
+        # Weighted sum: {"filters": [{"id": "explicit.stat_...", "weight": 1.5}, ...], "min": 100}
+        # Items are scored as sum(weight * stat value) and filtered/sorted by that score.
+        if filters.get("weighted_sum"):
+            ws = filters["weighted_sum"]
+            group = {
+                "type": "weight",
+                "filters": [
+                    {"id": f["id"], "value": {"weight": f.get("weight", 1)}, "disabled": False}
+                    for f in ws.get("filters", [])
+                ],
+            }
+            if ws.get("min") is not None:
+                group["value"] = {"min": ws["min"]}
+            stats = query["query"]["stats"]
+            # drop the empty placeholder "and" group so only real groups remain
+            stats[:] = [g for g in stats if g.get("filters")]
+            stats.append(group)
+            query["sort"] = {"statgroup.0": "desc"}  # best weighted score first
 
         # Item filters (sockets, links, etc.)
         if "item_filters" in filters:
