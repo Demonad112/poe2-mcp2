@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "poe2-optimizer": {
+      "command": "bash",
+      "args": ["scripts/run_mcp.sh"],
+      "env": {}
+    }
+  }
+}
