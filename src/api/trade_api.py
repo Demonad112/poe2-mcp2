@@ -36,6 +36,7 @@ class TradeAPI:
         poesessid: Optional[str] = None,
     ):
         self.base_url = "https://www.pathofexile.com"
+        self.last_error: Optional[str] = None  # surfaced by callers instead of a silent empty result
         self.cache_manager = cache_manager
         self.rate_limiter = rate_limiter or RateLimiter(
             rate_limit=2
@@ -89,6 +90,7 @@ class TradeAPI:
             await self.rate_limiter.acquire()
 
             # Build search query
+            self.last_error = None
             query = self._build_search_query(filters)
 
             # Perform search - Note: /api/trade2/search/poe2/{league}
@@ -120,10 +122,22 @@ class TradeAPI:
             return items
 
         except httpx.HTTPStatusError as e:
-            logger.error(f"Trade API HTTP error: {e.response.status_code} - {e.response.text}")
+            code = e.response.status_code
+            logger.error(f"Trade API HTTP error: {code} - {e.response.text}")
+            if code in (401, 403):
+                self.last_error = (
+                    f"HTTP {code}: trade site rejected the request (Cloudflare/auth). "
+                    "Set a valid POESESSID (env var POESESSID or setup_trade_auth) and make sure "
+                    "www.pathofexile.com is allowed by the network policy."
+                )
+            elif code == 429:
+                self.last_error = "HTTP 429: trade rate limit hit; retry later."
+            else:
+                self.last_error = f"HTTP {code} from trade API."
             return []
         except Exception as e:
             logger.error(f"Trade API error: {e}")
+            self.last_error = f"Trade API error: {e}"
             return []
 
     async def _fetch_item_details(
