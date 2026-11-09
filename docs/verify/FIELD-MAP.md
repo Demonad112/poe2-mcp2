@@ -25,3 +25,12 @@ Skill match is by skill name against enabled PoB socket groups; a missing name i
 
 ## Status on fixture (Yykiuy, L88)
 73/105 pass. All defence/overall rows pass. All 32 failures are damage rows — triage in Batch 2 as (a) config difference, (b) mapping error, (c) engine drift. PoB key names were confirmed only by the fixture run matching; re-verify against PoB source if a row is unexpectedly zero.
+
+## Batch 2 findings (Yykiuy, PoB bb52d6b) — 79/105 pass, 26 fail (all per-skill damage; all overall/defence rows pass)
+
+| Row group | Cause class | Status |
+|---|---|---|
+| `split.*` for skills where PoB sets `<Type>HitAverage` (Hollow Focus, Frozen Locus) | (b) mapping: was crit-weighted `StoredCombinedAvg`, ninja is post-mitigation `HitAverage` | **Fixed**, regression test added; now exact |
+| `split.*` for spell/trigger-path skills (Tempest Bell, Falling Thunder, Storm Wave, Hollow Resonance, Staggering Palm, Whirling Assault) | (b) basis: PoB leaves `HitAverage` 0, only pre-mitigation `StoredCombinedAvg` exists. Report flags the basis. | Open: needs a post-mitigation per-type source (derive from enemy res/armour or read a different PoB key) |
+| `dps` +7.7% to +12.9% (Falling Thunder, Hollow Resonance, Staggering Palm, Storm Wave, Tempest Bell) | unclassified (a) config vs (c) drift. Crit chance/multi and rate rows pass, so hit inputs match; the gap is in mitigation/enemy config. Hollow Focus and Frozen Locus DPS match exactly. | Open: next step is diffing enemy config (level, resists, boss flags) in ninja's export vs headless |
+| `Whirling Assault` dps -26%, dot -55% | unclassified: ninja is higher, opposite direction to the rest; likely skill part/stage or condition config | Open |
