@@ -42,7 +42,7 @@ Fix (a) and (b) in the MCP: set config from ninja's data, correct FIELD-MAP.md, 
 Damage, health and overall only, NO trade. Never read .env. No commits without asking.
 ```
 
-## [ ] Batch 3: run the site-vs-MCP check and write the app fix list
+## [x] Batch 3: run the site-vs-MCP check and write the app fix list
 
 ```
 Workspace: C:\Dev\projects\POE 2 MCP. Follow docs/verify/SITE-VS-MCP-local.md: compare the app's values for Yykiuy (from the SITE-VS-MCP.md doc in upgraded-disco-companion) against verify_character output, field by field, using FIELD-MAP.md. Fill in the FIELD-MAP "app field" column. Write docs/verify/APP-FIX-LIST.md with field, app value, MCP/ninja value, and the likely app-side cause. Include the damage-split order bug and the 3 unresolved tree nodes (15343, 49356, 60239) from docs/later/app-analysis-notes.md.

@@ -61,3 +61,15 @@ Probed by dumping enemy-side values from the headless engine (temporary bridge h
 | Whirling Assault: dps -26%, dot -55%, split | 5 | open: unexplained, opposite direction from the others |
 
 79/105 pass; the 26 failures are (c) drift plus Whirling Assault, which is not yet classified.
+
+## App field mapping (Batch 3)
+
+| Group | ninja key | App page location | App vs ninja on Yykiuy |
+|---|---|---|---|
+| overall/defence | life, energyShield, evasionRating, armour, spirit | Defences > Pools | match |
+| defence | effectiveHealthPool | Defences > Pools | match |
+| defence | `*MaximumHitTaken` x5 | Defences > Largest hit you survive | match |
+| defence | resistances + OverCap | Defences > Resistances | match |
+| damage | skills[].dps[].dps, critChance, critMultiplier, rate | Advanced > DPS matrix | match (Storm Wave +0.17%, in tolerance) |
+| damage | damageTypes[] | Advanced > DPS matrix; Damage review | **mismatch: lightning/fire swapped** (see APP-FIX-LIST.md #1) |
+| tree | passives node ids | Overview warning; Advanced > Passive tree | **3 ids unresolved** (APP-FIX-LIST.md #2) |
