@@ -41,3 +41,23 @@ Skill match is by skill name against enabled PoB socket groups; a missing name i
 - Setting ele res to 60 makes Tempest Bell, Storm Wave, Hollow Resonance, Staggering Palm match ninja to 1.000 (Falling Thunder -4.5%), **but** breaks Hollow Focus / Frozen Locus (exact at 50) by about -17%. So this is **not** a global enemy-config difference. Don't apply it as a default.
 - Conclusion: the +7.7%..+12.9% DPS gap is specific to the spell/trigger-path skills (the ones where PoB leaves `HitAverage` at 0). Likely a per-skill mitigation/penetration/exposure or hit-vs-crit handling difference, i.e. (c) engine drift or a skill-specific condition. Still unconfirmed.
 - Whirling Assault is off in the opposite direction at every setting tried (0.74 at default); separate cause.
+
+### Batch 2, per-type probe of the spell/trigger-path skills (Tempest Bell, Storm Wave)
+
+Probed by dumping enemy-side values from the headless engine (temporary bridge handler, reverted; no net bridge change).
+
+- Enemy config in PoB matches the export: level 82, resists phys 0 / cold 40 / fire 50 / lightning 50 / chaos 0, no INC/MORE damage-taken, no penetration on the skill. Ninja's crit chance, crit multi and rate match PoB exactly for these skills (Tempest Bell 64.56% / 4.4 / 2.0; Storm Wave 100% / 3.38 / 1.667), so the hit inputs are not the cause.
+- On the normal hit path (Hollow Focus) PoB's per-type multipliers are phys 0.416 (armour), cold 0.6, fire 0.5, lightning 0.5, i.e. the expected resist maths, and DPS and split match ninja exactly.
+- On the spell/trigger path PoB sets `<Type>HitAverage`, `<Type>CritAverage` and `EffMult` all to 0 (the per-hit mitigation branch is not taken), but `AverageDamage` is non-zero: Storm Wave `AverageDamage` / pre-mitigation sum = 0.796, which the visible enemy resists cannot produce (they imply ~0.57). So PoB's DPS for these skills comes from a path whose per-type mitigation is not exposed in the output table. Ninja's split is within 3 to 9 percentage points of PoB's pre-mitigation split (less lightning, more phys and cold), which fits partial mitigation on ninja's side.
+- **Classification:** (c) engine drift / different calc path (PoB bb52d6b vs ninja's current version), not fixable by config or by a mapping change, since no PoB output key carries the post-mitigation per-type value for these skills. `dps` +7.7% to +12.9% and the matching `split.*` rows stay as documented drift. The `verify_character` cause text already labels the split rows as a basis mismatch.
+
+### Batch 2 status
+
+| Group | Rows | Status |
+|---|---|---|
+| overall + defence | all | pass |
+| Hollow Focus, Frozen Locus (dps, dot, split) | all | pass (split fixed in Batch 2) |
+| Falling Thunder, Hollow Resonance, Staggering Palm, Storm Wave, Tempest Bell: dps, dot, split | 21 | (c) documented drift |
+| Whirling Assault: dps -26%, dot -55%, split | 5 | open: unexplained, opposite direction from the others |
+
+79/105 pass; the 26 failures are (c) drift plus Whirling Assault, which is not yet classified.
