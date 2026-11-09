@@ -126,23 +126,31 @@ class TradeAPI:
             return items
 
         except httpx.HTTPStatusError as e:
-            code = e.response.status_code
-            logger.error(f"Trade API HTTP error: {code} - {e.response.text}")
-            if code in (401, 403):
-                self.last_error = (
-                    f"HTTP {code}: trade site rejected the request (Cloudflare/auth). "
-                    "Set a valid POESESSID (env var POESESSID or setup_trade_auth) and make sure "
-                    "www.pathofexile.com is allowed by the network policy."
-                )
-            elif code == 429:
-                self.last_error = "HTTP 429: trade rate limit hit; retry later."
-            else:
-                self.last_error = f"HTTP {code} from trade API."
+            self._record_http_error(e)
             return []
         except Exception as e:
             logger.error(f"Trade API error: {e}")
             self.last_error = f"Trade API error: {e}"
             return []
+
+    def _record_http_error(self, e: "httpx.HTTPStatusError") -> None:
+        """Set last_error with a classified message for a non-2xx trade response."""
+        code = e.response.status_code
+        body = (e.response.text or "")[:200].replace("\n", " ")
+        logger.error(f"Trade API HTTP error: {code} - {body}")
+        if code in (401, 403):
+            self.last_error = (
+                f"[auth/blocked] HTTP {code}: trade site rejected the request "
+                f"(stale POESESSID or Cloudflare/IP block). Body: {body}. "
+                "Refresh POESESSID (env var or setup_trade_auth) and make sure "
+                "www.pathofexile.com is reachable from this network."
+            )
+        elif code == 429:
+            self.last_error = f"[rate-limit] HTTP 429: trade rate limit hit; retry later. Body: {body}"
+        elif code >= 500:
+            self.last_error = f"[unavailable] HTTP {code}: trade API unavailable. Body: {body}"
+        else:
+            self.last_error = f"[error] HTTP {code} from trade API. Body: {body}"
 
     async def _fetch_item_details(
         self, item_ids: List[str], query_id: str = None
@@ -174,8 +182,12 @@ class TradeAPI:
 
             return items
 
+        except httpx.HTTPStatusError as e:
+            self._record_http_error(e)
+            return []
         except Exception as e:
             logger.error(f"Error fetching item details: {e}")
+            self.last_error = f"[error] Trade fetch error: {e}"
             return []
 
     def _parse_item_listing(self, raw_data: Dict) -> Optional[Dict[str, Any]]:
@@ -319,6 +331,8 @@ class TradeAPI:
             Dict of item_type -> List of matching items
         """
         results = {}
+        self.last_error = None
+        first_error: Optional[str] = None
 
         # Extract needs
         missing_res = character_needs.get("missing_resistances", {})
@@ -332,6 +346,7 @@ class TradeAPI:
             charm_results = await self._search_resistance_charms(
                 league, missing_res, max_price_chaos
             )
+            first_error = first_error or self.last_error
             if charm_results:
                 results["charms"] = charm_results
 
@@ -341,6 +356,7 @@ class TradeAPI:
             amulet_results = await self._search_amulets_with_stats(
                 league, missing_res, needs_life, max_price_chaos
             )
+            first_error = first_error or self.last_error
             if amulet_results:
                 results["amulets"] = amulet_results
 
@@ -350,9 +366,12 @@ class TradeAPI:
             helmet_results = await self._search_helmets_with_defenses(
                 league, missing_res, needs_life, needs_es, max_price_chaos
             )
+            first_error = first_error or self.last_error
             if helmet_results:
                 results["helmets"] = helmet_results
 
+        # An error with no results must not look like an empty market
+        self.last_error = None if results else first_error
         return results
 
     async def _search_resistance_charms(
