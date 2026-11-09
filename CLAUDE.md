@@ -40,6 +40,7 @@ answer directly.
 | Compare to ladder | `compare_to_top_players` (needs network to poe.ninja) |
 | Re-export | `export_pob` |
 | PoB-exact calcs without desktop PoB (DPS, EHP, config what-ifs like enemy level/shock) | `headless_pob_status`, `headless_pob_calc` — needs `bash scripts/setup_headless_pob.sh` once (luajit + PoB2 checkout) |
+| Verify a character against poe.ninja (damage, defences, overall; poe.ninja = truth) | `verify_character` (`char_model`/`char_model_path`, optional `ninja_url`) → `verify-report/v1` JSON then markdown diff, failures first; needs the headless engine. `reconcile_defensive_stats` routes to it when the charModel has `pathOfBuildingExport` |
 | Price / upgrade lookup | `search_trade_items` — needs `POESESSID` env var + `www.pathofexile.com` allowed; on 401/403 it reports the auth failure (not "no items"). If unavailable, say "trade unavailable" — never invent prices |
 
 `pob_*` tools (other than `import_pob`) need a live Path of Building desktop instance — not

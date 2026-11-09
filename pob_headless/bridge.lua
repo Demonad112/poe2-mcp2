@@ -171,7 +171,54 @@ handlers.get_skills = function()
   return { ok = true, main_group = build.mainSocketGroup, groups = groups }
 end
 
-handlers.quit = function() return { ok = true, quit = true } end
+-- Per-skill damage table: for every enabled socket group, make it the main group,
+-- recalc and read the offence keys (confirmed against Modules/CalcOffence.lua,
+-- PoB2 commit in headless.py POB_COMMIT). The original main group is restored.
+local DMG_TYPES = { 'Physical', 'Lightning', 'Cold', 'Fire', 'Chaos' }
+local SKILL_KEYS = {
+  'TotalDPS', 'FullDPS', 'CombinedDPS', 'TotalDotDPS', 'AverageDamage', 'AverageHit', 'TotalMin', 'TotalMax',
+  'CritChance', 'CritMultiplier', 'Speed', 'HitSpeed', 'HitChance', 'AreaOfEffectRadiusMetres', 'Cooldown', 'Duration',
+}
+
+handlers.get_skill_table = function(p)
+  require_build()
+  local original = build.mainSocketGroup
+  local skills = {}
+  local ok, err = pcall(function()
+    for gi, g in ipairs(build.skillsTab.socketGroupList or {}) do
+      if g.enabled then
+        build.mainSocketGroup = gi
+        recalc()
+        local out = build.calcsTab.mainOutput
+        local sk = build.calcsTab.mainEnv and build.calcsTab.mainEnv.player and build.calcsTab.mainEnv.player.mainSkill
+        local name = sk and sk.activeEffect and sk.activeEffect.grantedEffect and sk.activeEffect.grantedEffect.name
+        if name then
+          local row = scalars(out, SKILL_KEYS)
+          row.index = gi
+          row.name = name
+          row.label = g.displayLabel or g.label
+          row.gem_level = sk.activeEffect.level
+          row.gem_quality = sk.activeEffect.quality
+          local split = {}
+          for _, t in ipairs(DMG_TYPES) do
+            split[t] = {
+              hit_average = out[t .. 'HitAverage'] or 0,
+              combined_average = out[t .. 'StoredCombinedAvg'] or 0,
+            }
+          end
+          row.split = split
+          skills[#skills + 1] = row
+        end
+      end
+    end
+  end)
+  build.mainSocketGroup = original
+  recalc()
+  if not ok then error(err) end
+  return { ok = true, main_group = build.mainSocketGroup, original_main_group = original, skills = skills }
+end
+
+handlers.quit =function() return { ok = true, quit = true } end
 
 io.write(json.encode({ ok = true, ready = true }), '\n')
 io.flush()
