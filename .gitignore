@@ -253,7 +253,8 @@ data/extracted/
 # ===========================================
 
 # Claude Code local config
-.claude/
+.claude/*
+!.claude/settings.json
 
 # Root-level report files (AI session artifacts)
 *_REPORT.md
