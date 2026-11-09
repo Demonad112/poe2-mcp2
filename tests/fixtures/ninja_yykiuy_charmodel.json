@@ -1,0 +1,1150 @@
+{
+ "type": "ninja-charmodel-trimmed",
+ "charModel": {
+  "account": "Demonad112#2589",
+  "name": "Yykiuy",
+  "league": "Forbidden Rites",
+  "level": 88,
+  "class": "Martial Artist",
+  "baseClass": 6,
+  "updatedUtc": "2026-11-09T06:14:26.81743Z",
+  "defensiveStats": {
+   "life": 1477,
+   "energyShield": 2922,
+   "ward": 0,
+   "mana": 662,
+   "spirit": 147,
+   "movementSpeed": 134,
+   "lifeRegen": 35,
+   "evasionRating": 8704,
+   "evadeChance": 48,
+   "evadeChanceMax": 95,
+   "enemyAccuracy": 2114,
+   "baseEvadeChance": 0,
+   "armour": 0,
+   "damageReductions": {
+    "physical": null,
+    "fire": null,
+    "cold": null,
+    "lightning": null,
+    "chaos": null
+   },
+   "deflectChance": 4,
+   "deflectChanceMax": 95,
+   "deflectionRating": 435,
+   "deflectEffect": 40,
+   "strength": 97,
+   "dexterity": 142,
+   "intelligence": 124,
+   "enduranceCharges": 3,
+   "frenzyCharges": 3,
+   "powerCharges": 3,
+   "effectiveHealthPool": 18456,
+   "physicalMaximumHitTaken": 4399,
+   "fireMaximumHitTaken": 15711,
+   "coldMaximumHitTaken": 19126,
+   "lightningMaximumHitTaken": 15169,
+   "chaosMaximumHitTaken": 9477,
+   "fireResistance": 75,
+   "fireResistanceOverCap": 5,
+   "fireResistanceMax": 75,
+   "coldResistance": 80,
+   "coldResistanceOverCap": 59,
+   "coldResistanceMax": 80,
+   "lightningResistance": 74,
+   "lightningResistanceOverCap": 0,
+   "lightningResistanceMax": 76,
+   "chaosResistance": 69,
+   "chaosResistanceOverCap": 0,
+   "chaosResistanceMax": 75,
+   "blockChance": 0,
+   "itemRarity": 33,
+   "physicalTakenAs": {
+    "physical": 100,
+    "lightning": 0,
+    "fire": 0,
+    "cold": 0,
+    "chaos": 0
+   },
+   "damageTypes": {
+    "physical": null,
+    "fire": {
+     "takenAs": null,
+     "takenAsFromHits": null,
+     "attackMult": 1,
+     "spellMult": 1,
+     "dotMult": 0.25,
+     "flat": null,
+     "esBypass": null,
+     "momShare": 0
+    },
+    "cold": {
+     "takenAs": null,
+     "takenAsFromHits": null,
+     "attackMult": 1,
+     "spellMult": 1,
+     "dotMult": 0.2,
+     "flat": null,
+     "esBypass": null,
+     "momShare": 0
+    },
+    "lightning": {
+     "takenAs": null,
+     "takenAsFromHits": null,
+     "attackMult": 1,
+     "spellMult": 1,
+     "dotMult": 0.26,
+     "flat": null,
+     "esBypass": null,
+     "momShare": 0
+    },
+    "chaos": {
+     "takenAs": null,
+     "takenAsFromHits": null,
+     "attackMult": 1,
+     "spellMult": 1,
+     "dotMult": 0.31,
+     "flat": null,
+     "esBypass": null,
+     "momShare": 0
+    }
+   },
+   "recovery": {
+    "regen": {
+     "life": 35,
+     "energyShield": 0,
+     "mana": 30
+    },
+    "overleech": false,
+    "recharge": {
+     "energyShield": 365,
+     "life": 0,
+     "delay": 3.5088,
+     "wardDelay": 2
+    },
+    "recoup": null,
+    "onIncomingHit": null,
+    "maxLifeLeechRate": 295,
+    "maxEnergyShieldLeechRate": 292
+   },
+   "lifeLossPrevention": null,
+   "companionRedirect": null,
+   "lowestMaximumHitTaken": 4399
+  },
+  "pathOfBuildingExport": "eNrtPWt3nEaynzO_gqNz9n6xbNPN29fZe0ZvZSVL0ch2ki85DTQaIgbGwOjhPfvfb1U3MMDADCNns8pG_oBHUFXdXVVdr26a9__3MIuUO55mYRJ_v0PeqDsKj73ED-Ob73c-Xh-9tnf-7--j95csn14Ee4swwif076Pv3os_FJZ5PPb3I5ZlH9iMf79zztI8ZJEyhv-yfEfxpixlXs7TM37Ho_EiT84TH-ACFmUcHtcwk_h2R4kQ7Psd295RZiyMJ4l3y_PjNFnMoXvQu5ylNzz_VPZY_ZXsKHchv5dUr68OD3egd9-9v4zYI08nOcuVDC7f74xhlOyGH7AZXAGHRQtAILppEvON6lCHUofsvF2LvLdIs_xpFCZzzv0l0hvDIbQP9jLlh0HAvTy84_tpmO9PWewtWzT1N4apG33YT8M4X0R5OI9CnlZY-hu9D-NkpQmiqn3A10nOooPLSQVLNY06xhuDWqphO_p6vCSv8Hpb-Bzm070IGPyEVhD39CYOc_5E5MskzJL4G8ZXR-0d4v4iimDqDYK94hlP71geNrvVTzuZuWH8JO6NU84uAqmtV8wPF9k5z1OeVXS0N71qfs5itp9kS_kSi6yDveQpGJu8gaJuQJhwLwH7VEehFoXZatABTXUT6G3zLAz4cMithlMgbNubp43jcDIUbmvCT-vQFRjcYZCTZBENhMyXls6x-qfSlzqg1UvugD_UXAJdQ68BSXtbPo1rE4Pqawg2IInZ38O7BE3CZtZcp6G7yPkAQLRghyeXy-Zt3TDfUJjIJjVNu9fBTR-z0GPROXsIZ4sZeJNrdsuXPdM1x-lX65tpHoMp7EMmBjF7sY_ClPcjWoT028jI70UEX97LdvCTSdaH6eiW1W-HwviExf7Y8xYQQj0uDRihveM7YOltzLNsqJMAoz8YAw1KTcf7ew6xjvcOoU9jr0Iw1pH9GKdFdwY1gChXYD8wKnMjPhhn2Uxhh4aEL7KxGx4XLS4FoRlv7HVYZ5x702MQ4xUbMpvQ8SxDNpOuZS8C19m7lmoHe9fQb2JswSlE7OGU-sZYh7UlpybzEELWutjXQ3ap11CM9vjVN6atQgxBVNvWNaPXMB_GPL15nExDHi1bxRxhCELJwH02H4QrVKJOoK4aRLWGtdklOXUI6pbiu6rnT2uhtu3THcvqHs62VH09yyRCg1v9Lhmgfd7Ke_ReC3DOISPZDuUyTX7DtC_aEg_GEkVPQHlqewc8iBAvQYGDK645bqM_3i-w2q30pxazZJEOMQYgSAk8yCCWwYfM46-4v_CGhUVVTr4XJd5taxibsQTHt0Id5znzbg8S_4YPRRGNbIXR7N9kMZ-D5cNJMZQAhlQQTIS1oNsyNgNfwJSumzdjXeTVom-rm4FX6G-OKNuj0AditJtS18aCrVb6Y9Ua9OAWKmmeg8mcgd8SdafzpF560tYZIPB6IPXOVL6XHUeLKBpUaBCAAwsel8k9jHmK5b5aNWEINATbmxGOUh5_fRxMvwE-qIHD2IewHXg5uI02Rlcze4sgyOTP63AGHibLDljOFL9I7j6xNGRxTjDAad-k4mbGWepNz0Cpvt-p_3XEosgFcwN3kf77t6LAi7_2WeRlosnTeL7IlViUa2dh5v3qQnew8gqE8lTUjA-Pjg73r08_HRYdrqNkt2EU_RovZi5WGeX_oqorQSfSpSheEkVsnnG_qhKH8HOCyBOOHgRaW7iZhP5-51PI78XDA56zMMoGUYNMrKzj1mkJOstnQyh9BgamIcq3TuhwNkeN5D7Kd1iXRKVzpTOyJxj_oLyHcUqWmuukpCfZZ1kuIrQhVPZFhF0ngneGDeV0NmdRi7XFvcGivn6cc8m8Vabk8CwDtx8GoTecwbWidYM3ZX49hIaoMjfx5a0hyLJS3MQu7g3iqqhSt7gq7w3SL-6xxya2vDUEuYrwmwSq20kM3B1E6TDi4zBC19SS7IckFsoOZqQCGELwHAyRdHstghf5lKflkyGUYJbIyle2MnvK-4N4JeokDTbhnUFjESWAOqq4M2zWhysztrg3SCyNdLVhyupPhpAqA5w6EXlvoBiKwL8hAnlv0EjKJLAxiOLmoIkiTO74Lgn9VWvRfvjNBEVG8Dv0C2P-34FMldkNonUUsey2NVuKe73oebpYg_0RstEwf_w2Ijjfvo0CTrtvo4BB3GwQ9tVKGHK1NvhYYlahZbvhG549Gb8KQ59MQQbLT0YXsfxg0w8aixlLl-2vHn0brUm-iA-AJetnxXJQG3o1wHYMpyUd5VYDlfO_WIdYNW3ywbcTAjd-MjRe7KVUpbMnnEW41J5E30awvRAzQAS9tLAuuZiz2C-pXWwTpfdzL8kzICrSrwOsf2bf1Etw37PHGp33b8t87v1-EgfhjcLkRhPxx4TnmCWK9qo7ogF5s0zoXJAEZ3HZA5nfHYQZLsccnlxiSHgR11zbWjxcCA6xt3ucYxwJjAWljh63QcXk5Cl4gj0ihMc65raI-1PIRsrofxu8JPIPH-ZJtkj51sgH7OsTmpSZQguvSOWrvT8fOEvdR4QXGW2Vog_BumIpv0g_xuGXBR9GAQCzfOzlCv3EgI2PShIoYNWU6zBncXbOfbgrI7miuKCpf1PC2Es5A-1XhIdVCheioMpxf_TdK1I8mERJvrZV7ROPEyCQPs7zTP4-SNniZpovW6RGvUX0BMr1NOXZNIn8tcT1sQuTOIEuKZcppnjHie_zLMMx_rDI8tDjfePC2EMpFz2UIIV-1UORvgYPHzkSPwE23CYpw0V8FinAxdCDW32NHUeJK7brYXy9qxRxsgJ9V2Tgr9Qj_762T0BSmXIRAHO4csCZ_-EG7NF08T8MdPx_M-WaZzWmvgKm5omCtWBFJgZLdzi4hWuWMdCOtS3gNPuWFu6nCVvbQFUIHtLKaZzzNFr4XKE_hsCdCb_jsXIJFoSl2ZI0Mb5dPp32YJHxlaLkIKxmrXQQSqN6W2BcRszjOHF4WgAK8znB0lSXqViFn3hJ6k23QZiCB9oCfulOkjRdzHFtC8wDELhpGDN1LQVwmntJlh3Bo700EQ65xCwXIbowfT5L4qMkna30d01zHE17mTCXCLZqahtQxNpCWQEt8TTbHIJW5vcl2qbu4SxsN-WYxgCsyzrvtAEI7a4ZG_tW2yxbIQ3AWWHdkIZw1fEzZ2K7TVvIdBOBYrkSYr8rFtebtjZiloZpeGNVDaXSQWJtYgua8-3FjFhbibm-3DhYzGLzeW2C0E3wpV3ffkAV6lajWlmDHDy05nL2Nj0t1gmWerSmqWWwt79IwR3kzXrh0lQNonEQQl6HVMazWYIC9QdZ5w4Cx3BhPn8KDQzmIDyrkobtsMWyz-PH7OkEQkzgxQKRd7ufLOJ8wqOgRmSN-LLwJowuAuFkV5xTkS2-rdI3mfSJv_Dn6WyepLnCH_C_S5bmj2VeKtLD05zPsiInxN9FRqhAyHuPay0l6z2elV4f_L3czQvGbZ7EAkNSlEuAQKWeQkKiEOaP75SPH05__Hg4gp7laYJpFASrOZsl6XyawCQYHYTwR-yPZEqhnB68UwLHMUyi-4TYbhBYjJqU-kTljkkIcTgxWWD5juNq3NVU02dw1wd4z_PdQNc9eyT6IqzBO8XWR-LXFf_yTlFHcs37nSJWSyGNHZ2FM8yYIM57p5ARsC2CSDrPEPYijh4VJpcWlEuWZcCsDKI2iN3Fb-UKpvKo_kBSVzwWKy5XxhGkxgyJ34MaJBhIcYwigYkx0BSNKo_g1JU85Xz02hLRJgSoymEklvUhJFxGnNmoCFcw_wGGnye-8BEF05UU_8Cda5VKNSDoRghtFeL9W2RlU760Kd-r8dXh6BhGF0E4ncEMHR3OeMqihkSp5vgeCXyLUk1l3LR8zTRcnRDXMfyA2Lrpc9vWVY0b3CMA5Oq-adiWYTm-xonTkKhpNyTaEBkh9bB6GbhLuzkiWiO1LLw1ZFO5IuMDJUhSRa6jZiOi16E9CQASEvHmyKo_lPSFnJUfFzDdeApSA634w0TVgtCHCVPrnKwnkOrnZZ7-mUdR1yx1VF9VXc9ngWEYTCcu1w1q-C43GFcDn-suC6ipqZrObZNbpusRZnObmNQybcZIc5aShkzXTEqsACiE_g27V3CdZcrhQ54ymQkWohZwTifYilq8ImLmFWXDznxv1CwR4Pq0IuuWSlk1_g_Mz6cJXe-YwXt8CpkJaO8eJJ2j8YznEHHk0sLVhA4T1dMcx7E1T-N-oDKDu6bvcM83VCdwwSRbDtd8w-NM1SxP1RhTdd8wfdcxTe4ETaFrNaGbjZlMRq9smdxjLlKXw9j3M4U4-IwaShkXlTKGu-XslYC6ANSlavgrQNReay9eUQ2hMaePovAG_SEoi7nBThdVHUUq6azQKlHwgaT-H6A6z0hBWhDGRghzI4Q1TA2NDjX8FM6BcZ-nSRqB2mV8VQMDMDhcs4lhE9UGR2H6OhgWXfdVzTACT9MMLyCB6liqZwaW63KXMNNXDdXXVe7zltmhdQ00mhp4DIMAx08U5styAYhZTnwsOhb6JfSDWhsVkeIdQ6-pWIcyNmxM3Zi9AlVHxwNxQnyTT-Fvp6v0NXql096K1YvOCUINnTsfH5_uY2yKwX0qQrWPELrP4Jecr6IkW3rCyWN0x-K6Mlo2DcCvaQaqlg3-zXENm1rMczUIXji1HC-wOTO57zGPeCpEPw6-c2nrPDCo6zXjGmMEoUMkOqb2WkbpATNFfQM6UZbFcdLI4HxkmnUlGs8w5yjrzL-bZ-pirdUZSpyD-rpRkkDoINf8lT0e5aNl8R6GpDVYqpuObziqalALAkPLJxqz7IC7KmUOhPsmsxzXUYGbxNBV-Mulrh0YlusbLudm08OYVo2PRmN-09EJBARabRkBJqAqLLYUelWbZ3NM5XzwAjiRIAcEmjfMEwsZe2E2W8CEXN4pXWftVhk8Le9MgOYUY2VIERRkUVl_FiAhSHQKwaOi0bosuQw3UNb-AschtbSF_IgZhUB_mfAAZnc4GTCqsYjYlOM0nI-OcM-SkEqexLyuiy41VUOzbU58SrlKLJVanHMDJr1laZpJHQKxEGSdtuo4AcxpnaiOaXnM4pC_kKAd4lbTm6ojeeYBKOJkdLWI-Tvl1E8i0YswTSGJrCtuwwDoo39CHALJSP6vf6aA-a9GCCN9iSKqPm3APVBC7mPrf1NSfCMCI9kouUc_cZnkACzVleOG3wxjlZ-ThZgmr4SbK5cl5OsgQhHnYnuzPM9BQhKELGOexuLFKkLh-MSqnkK7Y_qWY23iEGtjHiA7JJiJoBi1iXd2pCvP4Ll0mYVsSpji6YBQ7hUBXzxZpHOsA2B2X-WJAS59sbgePyzfxRk0kJWA9M80HVsQ9kYIZyMEng2yCYQMMwxOZyQQhTFMMxaXJvUYC3Jx4SSKMOAw9nFHfiMoVd0g0MAheZau-lQLHMdzdd_yOMSqumbaRKeuCemxwVRH9yAdpgG1DZ36nmP7Jh8UBxitDAnLksr9FLqHFl8EpkzB9XklSZWic6IEPNIagWWVr-pGe6EdY4mbYon935Z-ghC7IoUDxu9YXq3Efg7BY35mKZoyltaZbfue6WhUo7qtE7DJzGcEQgDKuGqqzISsAKIv1XQNzVKJSjwfDLip-UEAdhnyBrXJbGfJ7HoNgpJmsKA1CkvLaSwtrSz85NMQ-i2qo2XyIMzIOzkG3FOQ3Bd5g8gHqLli3l4RVV21ta1SVMPIN4UrbVthR8IAVUNyFMIJH7dXgY7Uel9QwgIYWCHUbjBjucLR7iiZiCizkan2jH19M7Ir60m_hCjCYnWYooPw69dHtPxVQoL7XZsJSYcl8rwAohBGVZ2YoOtMt6nhOr5jMZguPCC-YXPIRSzDcXSTagYPVEJMx9QCM9BczWpXWgdlJJbWrKIEvJZxXPFZguVx3PEA_W4-lRtfhD8VlmwBBEY63cYu_YGlb0I7Ldc4ZbcM2FQ5jTDIR-M4D30IqqTvqIuIuxYxIXwkkOHYnktAVj51ddVzKGfMtx1HNTn4CZcFAVVRZIYaMOozS7eZaTbtl612i4jq65yFC_yfcUW-liJkJMMcIRz-BQiiDcJCF0hsmQiXA6xSoyK9XIquJCRwloRqoh9IqEcA3fXqCchuAbb3hKfJYjaa5GwBgS9OnhXmGw4w0gTPbAaEaJqj-szxVfAnZmCapqdxlVMemIaHECqkmgbTA9fR4EZgqiptMN-qhfRmjfnEXsd8yCLTXCl3I1bpPLG70vl9mAU53NpPYrCZskSBB6XFPgagwKp_p6PuKhSfg18Gz7NIYeghxK9ROMcFEZ6NCpcFGQoxRo3IH3igqXUpgFZrzDBdFWwSpw5XdQs8NIcpwSHjN5hhMe77run5YLpsA-IqX9eIa_LA82zbtdtFvLWJ1bFgYYrpHQRxeK8mKqtRFND6UqZXVK3nNajJA0FxJrRBXxG7v0zX8ufFG76Fs7cbcUDvPrHRK2p17b4bvdLMzsKhYS5TwqOU86-8ChNRz0BtR68MvSMwgaH0Jnx_vVykcxZ11bkPcBuYcsljH7RidLAAnz6eLSKeNxyFZaiGxrgX2IERUF_1dd3xmKmplm5Y1FT9wAV_oWmmaegqwdDX545jMnAlbuAZTVvl1FMJp0fryyXrTMFt7mCyohmq5yRPw1uRS1-mPAgfQC39MAhhUkGunNyDYr4mkAMHnY9eWf01gZHeUOhumFe6Jarf4j03UGFB7oA_wKQGjrbWcPD112KyNB8M3WP5l4tJf4-50an4Zp_7-Afn89EEHOCt8gNDa730HYSaVtt5aJZenxYm81WIZk2XGr7DTcvwfeI6umX7FkyTgFk-tYLAtSFask2Tcdek4Lo9wzFNjZPAGeY8VtzHaYpWD71H3_2-paQVr6I1a_QbNbLP0-jDnZK-6pTAUZldFt1YY9EtZ6D_0fWVruFBWmX4f8MBXLoXDHZkOjjSa15Ivsmw6oWK1dcjWVvzVxaIsxevI-Csjsk3uV1gaTMBKYufXrrIpsD-5Y6VIKjPNB9SSAMXsQzN8rinmxgcW8Q2qGpjGOYSzhyqOVaguxZVuasygrml71DL0DyzN1Ppnml4rCNEJql4w-E6mSe43FJOtwn7wu5ZVGUOcLNal7t97I3oVqrlZdm1XbFBZ8zFGqBIV7pX9ntmF_iZZdUX89RW1TfFl0TKl1iWiYCELG63aYuysNFZFS7-LirVRU_lXoZlN_D9IZw0J2GxVG2JaU1Uq1EeF4_EE2rrHRsgtDekWGpe3Swl99hQU2Z7OI9FuVGUIsH9CtKaKHRZxmqhS1upy5dlLVl6f5nGCNe1fvU54SDD-2h0nIaxkNY55NRLH2oRve1CKSWNiR34hu3qoLyB75gE8i9uM5j8Kicu01TmapCOGcSyHNw6IbJgXzeYRnUSGK5tb7Wwtc5R2uuXtoj9-zjK3yl7I0O9n0O6HCt1-h3rK8ta6WJz9FIFcK7IzbsBFgGAqN2Z6FnWwK5qxsoOp2_ax_ZXW0xavjmr5GEecXG6AltE-aYd09-9x00HCgQ5s1PpsMXvS_fj1Rke2iQ3gRfOqdps3sRR1-Iok3s270Rci0efgNLfFFiwLsQTyCx53o1hdmLsJf6jUj8hpIXW3Q5kfXfLl9Oa7eg97SR5D4LRiSAT906M7hZwS1uPRI1-hG3EIhC0ToRuNcNNOQ1w-WpA9e55yQHaiS2XR8kQAtoaAnQAAWcNvjakA6STgFxWGTICcw3-NiIar3BsM_w29M_4zVb0EX5JX_jwUx8gumB_4PcQtVHi2KDgceJzJCv_3IaARi1TWxKQf25DwCS2VuuB_LNmpMvXYoTDxF8fkpyLQ-7wbvnHe_F6DBax78f-HXrP6ySJsuocBzaf83h5rIPPM3DnrDixKJJHVbyXQWuhM8UpdnlxPp9wB8d8dia_ehIn6aw6Fb3-vIiiACKM5Ks4ckcXPFr2Rryhs5jjaz1wH89Pg2fjszN4Im9le48Hl5NSbRs3j9DlN78EIc-cKPrbOAJCbnXlMb4lszyEIvbw3ebTuDgNsuhrxFwcmfyay3jJA8GA1j1xMIXEEw199x76p3gy5ihYBCrqlUFI0YSHC0SCnuySLOeRsmP1m7R5s-r8jdR_fP_IZzmTavEWWn8rOgY_5GmNhQOvZ8XVJ2uII1UQz6P9fqcOUhRJd5QvpRhhFOIwRNloxHkdXDaFRz-KYxsRpr_1t72cKnjzR_KqUr7TOBZfIOFL7tSZU3vcyZKCUAXWwZHqWQFbWgcpsD9ET8nz09Kx-BwTGKrHkwRr7EeJt8h6NFRCKAVIpxxqRDpEUG_iGalhVtPD_SjJOBo1ll_fJ93KKGAUCaScnq5XyRpByRFBtsaUGkCBghDPlD2nkL_ECxhrP3PA3_nJfbxcj9_IoQKjROhhUwvq-fMKfnE86VWUurqZ1QJZb9qKBLwsnsnaV6eh64Rsmr1nx61zdhPjWp8v34Tr1a8KTsEvSW1Urgocobs1qwGyolYv_qHhH654lsTybIh1PqIGtsZPVFC9vmJJ50Vtt1LbF8f64lj_Wx3rZRpC0juGzBcXq3oZtlx2K0E3cqxCKTG6WbYC9kd4DfH4z5r_ik3rYs96TyC03NTeJ6GKwqZst9bWiwvHug6fzXmW7_Eo6nHaBYQiQSr20zr_a1Q6BFBv43kWGPCE5CBJb7jfazCWIBsNxRK020Isnz9Pc1pjzAHHEfjHuDcmwBdBxTFeXfwpIJUW6Do-dRHvUJ8usGeer1yITwkuRGzMe1WqAbVRq8rMTRxZ0q1YDZDn76rH-J729CyMuThqrItFEqTci7M_DWc8W8-mBtEObWo8f-ZqdJkmwQLX0_vjPrnTpwLcHPYJhAq-J-prAv0RAQzt85n02fjMrHKauPX3It5fqd6YDdHg_mCQyP5qBYc2C_Y5WxLs0Nhma0Xx_-3zC-lAXVjMr8J8UeeJWudJAaOUQN0caVDqCugaLb3M3a3m7rNb24HYMF9kvVzaw91H-PJhuZ9oE5cqBAnfzaUW0LPnkuzmFc8hn-wNwQoG1aDWprNNkh3zrAXxUiN-qRE_wVmeiEMaL4LrKUw51LBSKFajNCygxH7sEq7bObTIdRWHWw2-FKqeWqh6blbwLLwL45tq73gvzyRcbZP5Jo61CNf4JSDPw7j4EFQDrPF0OTVrLG4hPHsG74MBwn6KGLM_cJFQxT6UzWFLnWhP0FIHef6J68u6zkBGnSXxTTZN-jlUAmzkzRFL1y3nVI9f3G-P-z3tX5WtXO9pY0m20-2edq_H1hp5cbd_anfbWJatnVcpTV3f6mPtXEu0TJuWHpfgS1PXWndsgjzD3KO-fMCZN-2v8aby8TqWVGAdvKiePfME7Hkt4v_V7f7naZhiTDXOMvmSUKftL6GUCqzb_LeodWhpu70XN_Bf4wZwvRI_U8f7V0aBOwMWRQuOSFKtBdGSDeLhc1WeMJ4nYZzvr923WUJ1Vf47GNMm2lXwbrf7khf9-fKi-sInvuMPwQ36j6iXSxWUgmAbudQg2s2lBsiLx2x5zCMmihArdcqGwyyANlUpm7Q6pnSrsWc6ofHE6ovgM0t7lRQhMHXEA1R7NbQiU5q87hy-BfWyyfAlmfyrJJN1RlWybb1u1a1Z6164autU36tXTYDnnWufhODp_KtFzxooHhqDh08IgHVMqeh0lbPKZy9vA9YdJH4b8IbjZ4UvWTTrcZBLIEVCdTvIJq0OGbQaeylwp3-WtxVenONLZvl782cvYl_F17PXsacAGsidFskO5rQgnnv59ZnGV3_xFyyO0uQrj8_WvDkvIZSzViDXzCeXVLqSyVobz3T_2swN87yeVTdcQfV0rfUvoLoC2OLRs9_P_eIZtzdrkX_4ME-yRcr7DFrkK0uQ9cZsSazTkC0fP3NVOo6YF655HUeerb4h5BQwnfYEHzz3yfS8Qqa_enIo953j9-d7DzEqQJQCptvT1el0TdF6My9m_r_GzF9PUxgqbtrl-LG7XqZJuPJAZgTdyLQW6W6WtYCeP8NeqoQvhZn_hs29f_H0UHwr6DO7473lVPyWkAToq6QWFDqLqCX156mSeymT3886CjMMute8BlZCKiXo5hfB2sR7XgVrg71UWF8qrH_FvTtpHrIIz-pI1hyCMQ_Lr4JmA87BAOgCuO8kjCXEn-EsjNAtPibTewZGDWLD0RcVZPeRF9Xjf3s1dcPZQUqWLFKPQ4iccv6OOJql7jxJPuL3EAnVAH-_w0r_zWeV_sflYmmG-aeQS8chgX_gGYH_CTlFSd7-VkIlPOTXO6K-6_go9a5SfZX6WQr2WZ7hVfwsD2SXp6XjT5wl5anpokekOJIc_lCY0NH9iGXZqfzEBqu0Fr9YksZMntWRxLfw0KsA1fKPGhDenLEMbjzKdbhMHCef-HiAuqEZuxalu0Sn6i4lRNulhk13NVNXd3ViWLu6oZm7BoVfhqVqu6btkF1LNfRdy7DMXctWnV3bMJ1dogLOLiG6Y8DVcGy4mirc0XTVwquBV4vq2JQpGjThjq7r5i4xNF2Dq2UBruHg1dTwqQkt7RJLtYGaRVSyK8wKXA0d7xg2tGsJmugGdqlqWhaMQoMuU_yID1wd3dgVJ_TvUk2FQVEYD92lpmHB1UL61HII3LdVHWBsGxgCVwNwHQeummqr9q5GTAe4QizTgKtjqLsaNW1tVxzdv6tptmnuwkBtAldiArxuUvhtqraBvISewHgsuG86Gty3KFKwDKLvajZg41UH-rbuADXb0Cy86gDpAAZcDeCq5thAX1dVoA88NVFAKgEJURvlpBvEhCv2SjdUQlFyNl4tFa4mcQDGUkFcugWsgSu2Dj0DKeo2MAiulgW4DgVNgH4Anw1iQR8MSqF1QyPQZwOGjb8dvK870JZhoHQM-A80xMBRGyB2gDEFpGnrqDkUNMGwdN2Bq40wtkbhtwNd3DVVqjm7JiGOCVcdlQw0h8DVIvAUv22wa1IbWjQpytGEQdKd4tN5LH0cNyeLMB45zK5PPM3Ea9Lqr8WXSN9_vDqTlmua5_Ps3du39_f3b-YsnyYBfwgj_sZLZm_nQAhm5WthCV4jpbdj-Ld3k-z5P57-NM5Pj34bT_f2pz9fXOyNnUP35mN49cvJ8SJzf5vSn0-SwymfTO2zj3r-6eAq-PDDIYkPOP1gZbr7293d5S_261--_nr348ej_fvDsw8_2g-Hvx1OyNX1w9mX6ODoI5l-OiSfjU98j42Pzye_2A_ZxWf12P354T7R9i3_R1__fHJ3Hux9sr_Gr9Pg18XhJPk4nf4Unlz-_JX8Fr--_DLfO7j9-R-TcP7TfuSxzz_9wn6IEvrL4y9f0pk986Y_2HpyMIsZ025TZ_Jwlf7jOD_5rCXu9IfFL18sdvZwfJf8NL46Pzh_nGrnV_Zrru6dTHLfPSFfD35WneiILjT30dcvNe36hvETX3fi5HaRX1r3X-_or_tT-8p9CO8-Gc7Nb9bXm_FYGsZSAsV3LrLCkci_qi91aN1f11iBo90f0ViBI53fykB7XOvFe_FiW-jzslOQCKShu8h5-UDx-cMHaTdLw4UmqzQRaByKKVlMK5xQhZKjYqMzzwsChdE1SyskZ6WYO6DbeVqACWssDaw0p9Js1gyjNEfFVK1NLjGhqoE2xgbjBi8jHBK6odIdfQr5PUwrlnrTSZ6ikxDf3MhZfhCC40jxG1lZ6Y-_Jkn5XQ9N_vWT8J_462f8BS2_f3sJc-si2FuEEX7ym_599P95_-Or",
+  "skills": [
+   {
+    "gems": [
+     {
+      "name": "Tempest Bell",
+      "level": 19,
+      "quality": 20
+     },
+     {
+      "name": "Rageforged II",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Delayed Gratification",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Overabundance II",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Ailith's Chimes",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Charge Profusion II",
+      "level": 0,
+      "quality": 0
+     }
+    ],
+    "dps": [
+     {
+      "name": "Tempest Bell",
+      "dps": 28778,
+      "dotDps": 9,
+      "gemLevels": {
+       "level": 23,
+       "quality": 32,
+       "levelMods": [
+        {
+         "kind": 0,
+         "value": 19,
+         "src": 56
+        },
+        {
+         "kind": 2,
+         "value": 3,
+         "src": 7
+        },
+        {
+         "kind": 2,
+         "value": 1,
+         "src": 14
+        }
+       ],
+       "qualityMods": [
+        {
+         "kind": 0,
+         "value": 20,
+         "src": 56
+        },
+        {
+         "kind": 2,
+         "value": 12,
+         "src": 14
+        }
+       ]
+      },
+      "damageTypes": [
+       22,
+       37,
+       33,
+       8,
+       0
+      ],
+      "dotDamageTypes": [
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "damage": [
+       28778,
+       22,
+       37,
+       33,
+       8,
+       0,
+       0
+      ],
+      "rate": 2,
+      "rateKind": 0,
+      "critChance": 64.5645,
+      "critMultiplier": 4.4,
+      "hitChance": 100,
+      "duration": 3.795,
+      "cooldown": 0.5,
+      "cooldownCapsRate": true
+     }
+    ]
+   },
+   {
+    "gems": [
+     {
+      "name": "Cast on Critical",
+      "level": 16,
+      "quality": 20
+     },
+     {
+      "name": "Profane Ritual",
+      "level": 10,
+      "quality": 20
+     },
+     {
+      "name": "Charge Profusion II",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Boundless Energy II",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Energy Retention",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Magnified Area II",
+      "level": 0,
+      "quality": 0
+     }
+    ],
+    "dps": [
+     {
+      "name": "Profane Ritual",
+      "dps": 0,
+      "dotDps": 286,
+      "gemLevels": {
+       "level": 10,
+       "quality": 32,
+       "levelMods": [
+        {
+         "kind": 0,
+         "value": 10,
+         "src": 37
+        }
+       ],
+       "qualityMods": [
+        {
+         "kind": 0,
+         "value": 20,
+         "src": 37
+        },
+        {
+         "kind": 2,
+         "value": 12,
+         "src": 14
+        }
+       ]
+      },
+      "damageTypes": [
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "dotDamageTypes": [
+       0,
+       0,
+       0,
+       0,
+       100
+      ],
+      "damage": [
+       286,
+       0,
+       0,
+       0,
+       0,
+       100,
+       2
+      ],
+      "rate": 1.44,
+      "rateKind": 1,
+      "noHit": true,
+      "critMultiplier": 3.95,
+      "hitChance": 100,
+      "duration": 2.112,
+      "aoeRadius": 2.7
+     }
+    ]
+   },
+   {
+    "gems": [
+     {
+      "name": "Herald of Thunder",
+      "level": 17,
+      "quality": 20
+     },
+     {
+      "name": "Elemental Armament II",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Living Lightning II",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Culling Strike II",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Magnified Area II",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Longshot II",
+      "level": 0,
+      "quality": 0
+     }
+    ],
+    "dps": []
+   },
+   {
+    "gems": [
+     {
+      "name": "Whirling Assault",
+      "level": 19,
+      "quality": 20
+     },
+     {
+      "name": "Elemental Armament II",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Rage III",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Pinpoint Critical",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Magnified Area II",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Ancestral Call II",
+      "level": 0,
+      "quality": 0
+     }
+    ],
+    "dps": [
+     {
+      "name": "Whirling Assault",
+      "dps": 38106,
+      "dotDps": 42,
+      "gemLevels": {
+       "level": 23,
+       "quality": 32,
+       "levelMods": [
+        {
+         "kind": 0,
+         "value": 19,
+         "src": 57
+        },
+        {
+         "kind": 2,
+         "value": 3,
+         "src": 7
+        },
+        {
+         "kind": 2,
+         "value": 1,
+         "src": 14
+        }
+       ],
+       "qualityMods": [
+        {
+         "kind": 0,
+         "value": 20,
+         "src": 57
+        },
+        {
+         "kind": 2,
+         "value": 12,
+         "src": 14
+        }
+       ]
+      },
+      "damageTypes": [
+       23,
+       36,
+       33,
+       8,
+       0
+      ],
+      "dotDamageTypes": [
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "damage": [
+       55974,
+       23,
+       36,
+       33,
+       8,
+       0,
+       1
+      ],
+      "rate": 0.6807814470177,
+      "rateKind": 0,
+      "critChance": 100,
+      "critMultiplier": 3.38,
+      "hitChance": 100
+     }
+    ]
+   },
+   {
+    "gems": [
+     {
+      "name": "Falling Thunder",
+      "level": 19,
+      "quality": 20
+     },
+     {
+      "name": "Fist of War II",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Elemental Armament II",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Concentrated Area",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Elemental Focus",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Hit and Run",
+      "level": 0,
+      "quality": 0
+     }
+    ],
+    "dps": [
+     {
+      "name": "Falling Thunder",
+      "dps": 233295,
+      "dotDps": 0,
+      "gemLevels": {
+       "level": 23,
+       "quality": 32,
+       "levelMods": [
+        {
+         "kind": 0,
+         "value": 19,
+         "src": 29
+        },
+        {
+         "kind": 2,
+         "value": 3,
+         "src": 7
+        },
+        {
+         "kind": 2,
+         "value": 1,
+         "src": 14
+        }
+       ],
+       "qualityMods": [
+        {
+         "kind": 0,
+         "value": 20,
+         "src": 29
+        },
+        {
+         "kind": 2,
+         "value": 12,
+         "src": 14
+        }
+       ]
+      },
+      "damageTypes": [
+       12,
+       47,
+       33,
+       8,
+       0
+      ],
+      "dotDamageTypes": [
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "damage": [
+       233295,
+       12,
+       47,
+       33,
+       8,
+       0,
+       0
+      ],
+      "rate": 1.5912,
+      "rateKind": 0,
+      "critChance": 64.5645,
+      "critMultiplier": 4.4,
+      "hitChance": 100,
+      "aoeRadius": 3.2
+     }
+    ]
+   },
+   {
+    "gems": [
+     {
+      "name": "Staggering Palm",
+      "level": 19,
+      "quality": 20
+     },
+     {
+      "name": "Longshot II",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Elemental Armament II",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Pinpoint Critical",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Blazing Critical",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Concentrated Area",
+      "level": 0,
+      "quality": 0
+     }
+    ],
+    "dps": [
+     {
+      "name": "Staggering Palm",
+      "dps": 98757,
+      "dotDps": 134,
+      "gemLevels": {
+       "level": 23,
+       "quality": 32,
+       "levelMods": [
+        {
+         "kind": 0,
+         "value": 19,
+         "src": 38
+        },
+        {
+         "kind": 2,
+         "value": 3,
+         "src": 7
+        },
+        {
+         "kind": 2,
+         "value": 1,
+         "src": 14
+        }
+       ],
+       "qualityMods": [
+        {
+         "kind": 0,
+         "value": 20,
+         "src": 38
+        },
+        {
+         "kind": 2,
+         "value": 12,
+         "src": 14
+        }
+       ]
+      },
+      "damageTypes": [
+       23,
+       36,
+       33,
+       8,
+       0
+      ],
+      "dotDamageTypes": [
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "damage": [
+       69376,
+       23,
+       36,
+       33,
+       8,
+       0,
+       1
+      ],
+      "rate": 1.4235,
+      "rateKind": 0,
+      "critChance": 100,
+      "critMultiplier": 3.38,
+      "hitChance": 100,
+      "duration": 7.887
+     }
+    ]
+   },
+   {
+    "gems": [
+     {
+      "name": "Frozen Locus",
+      "level": 19,
+      "quality": 20
+     },
+     {
+      "name": "Embitter",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Elemental Armament II",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Cold Exposure",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Freeze",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Pinpoint Critical",
+      "level": 0,
+      "quality": 0
+     }
+    ],
+    "dps": [
+     {
+      "name": "Frozen Locus",
+      "dps": 594,
+      "dotDps": 0,
+      "gemLevels": {
+       "level": 23,
+       "quality": 32,
+       "levelMods": [
+        {
+         "kind": 0,
+         "value": 19,
+         "src": 30
+        },
+        {
+         "kind": 2,
+         "value": 3,
+         "src": 7
+        },
+        {
+         "kind": 2,
+         "value": 1,
+         "src": 14
+        }
+       ],
+       "qualityMods": [
+        {
+         "kind": 0,
+         "value": 20,
+         "src": 30
+        },
+        {
+         "kind": 2,
+         "value": 12,
+         "src": 14
+        }
+       ]
+      },
+      "damageTypes": [
+       6,
+       38,
+       56,
+       0,
+       0
+      ],
+      "dotDamageTypes": [
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "damage": [
+       412,
+       6,
+       38,
+       56,
+       0,
+       0,
+       1
+      ],
+      "rate": 1.44,
+      "critMultiplier": 3.07,
+      "hitChance": 100,
+      "duration": 10.527
+     }
+    ]
+   },
+   {
+    "gems": [
+     {
+      "name": "Charged Staff",
+      "level": 19,
+      "quality": 20
+     },
+     {
+      "name": "Elemental Armament II",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Thrill of the Kill II",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Elemental Focus",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Longshot II",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Culling Strike II",
+      "level": 0,
+      "quality": 0
+     }
+    ],
+    "dps": []
+   },
+   {
+    "gems": [
+     {
+      "name": "Storm Wave",
+      "level": 19,
+      "quality": 20
+     },
+     {
+      "name": "Branching Fissures II",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Elemental Armament II",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Pinpoint Critical",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Rapid Attacks II",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Deliberation",
+      "level": 0,
+      "quality": 0
+     }
+    ],
+    "dps": [
+     {
+      "name": "Storm Wave",
+      "dps": 148009,
+      "dotDps": 253,
+      "gemLevels": {
+       "level": 23,
+       "quality": 32,
+       "levelMods": [
+        {
+         "kind": 0,
+         "value": 19,
+         "src": 39
+        },
+        {
+         "kind": 2,
+         "value": 3,
+         "src": 7
+        },
+        {
+         "kind": 2,
+         "value": 1,
+         "src": 14
+        }
+       ],
+       "qualityMods": [
+        {
+         "kind": 0,
+         "value": 20,
+         "src": 39
+        },
+        {
+         "kind": 2,
+         "value": 12,
+         "src": 14
+        }
+       ]
+      },
+      "damageTypes": [
+       10,
+       50,
+       32,
+       8,
+       0
+      ],
+      "dotDamageTypes": [
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "damage": [
+       148009,
+       10,
+       50,
+       32,
+       8,
+       0,
+       0
+      ],
+      "rate": 1.66725,
+      "rateKind": 0,
+      "critChance": 100,
+      "critMultiplier": 3.38,
+      "hitChance": 100,
+      "aoeRadius": 9.1
+     }
+    ]
+   },
+   {
+    "gems": [
+     {
+      "name": "Hollow Focus",
+      "level": 19,
+      "quality": 0
+     },
+     {
+      "name": "Close Combat II",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Cooldown Recovery II",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Supercritical",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Magnified Area II",
+      "level": 0,
+      "quality": 0
+     }
+    ],
+    "dps": [
+     {
+      "name": "Hollow Focus",
+      "dps": 245,
+      "dotDps": 0,
+      "gemLevels": {
+       "level": 22,
+       "quality": 12,
+       "levelMods": [
+        {
+         "kind": 0,
+         "value": 19,
+         "src": 33
+        },
+        {
+         "kind": 2,
+         "value": 3,
+         "src": 7
+        }
+       ],
+       "qualityMods": [
+        {
+         "kind": 2,
+         "value": 12,
+         "src": 14
+        }
+       ]
+      },
+      "damageTypes": [
+       8,
+       56,
+       34,
+       2,
+       0
+      ],
+      "dotDamageTypes": [
+       0,
+       0,
+       0,
+       100,
+       0
+      ],
+      "damage": [
+       245,
+       8,
+       56,
+       34,
+       2,
+       0,
+       0
+      ],
+      "rate": 0.64474532559639,
+      "critMultiplier": 4.95,
+      "hitChance": 100,
+      "cooldown": 1.551,
+      "cooldownCapsRate": true
+     }
+    ]
+   },
+   {
+    "gems": [
+     {
+      "name": "Hollow Resonance",
+      "level": 19,
+      "quality": 0
+     },
+     {
+      "name": "Magnified Area II",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Close Combat II",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Cooldown Recovery II",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Elemental Armament II",
+      "level": 0,
+      "quality": 0
+     }
+    ],
+    "dps": [
+     {
+      "name": "Hollow Resonance",
+      "dps": 80051,
+      "dotDps": 84,
+      "gemLevels": {
+       "level": 22,
+       "quality": 12,
+       "levelMods": [
+        {
+         "kind": 0,
+         "value": 19,
+         "src": 34
+        },
+        {
+         "kind": 2,
+         "value": 3,
+         "src": 7
+        }
+       ],
+       "qualityMods": [
+        {
+         "kind": 2,
+         "value": 12,
+         "src": 14
+        }
+       ]
+      },
+      "damageTypes": [
+       22,
+       37,
+       33,
+       8,
+       0
+      ],
+      "dotDamageTypes": [
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "damage": [
+       42176,
+       22,
+       37,
+       33,
+       8,
+       0,
+       1
+      ],
+      "rate": 1.898,
+      "rateKind": 0,
+      "critChance": 64.5645,
+      "critMultiplier": 4.4,
+      "hitChance": 100,
+      "aoeRadius": 2.6,
+      "cooldown": 0.38461538461538
+     }
+    ]
+   },
+   {
+    "gems": [
+     {
+      "name": "Herald of Ice",
+      "level": 19,
+      "quality": 20
+     },
+     {
+      "name": "Elemental Armament II",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Concentrated Area",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Overreach",
+      "level": 0,
+      "quality": 0
+     },
+     {
+      "name": "Close Combat II",
+      "level": 0,
+      "quality": 0
+     }
+    ],
+    "dps": []
+   },
+   {
+    "gems": [
+     {
+      "name": "Quarterstaff Strike",
+      "level": 19,
+      "quality": 0
+     },
+     {
+      "name": "Innervate",
+      "level": 0,
+      "quality": 0
+     }
+    ],
+    "dps": []
+   },
+   {
+    "gems": [
+     {
+      "name": "Spear Throw",
+      "level": 1,
+      "quality": 0
+     }
+    ],
+    "dps": []
+   }
+  ]
+ }
+}

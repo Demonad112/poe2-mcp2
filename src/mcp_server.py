@@ -509,6 +509,8 @@ class PoE2BuildOptimizerMCP:
                 return await self._handle_validate_support_combination(arguments)
             elif name == "validate_build_constraints":
                 return await self._handle_validate_build_constraints(arguments)
+            elif name == "verify_character":
+                return await self._handle_verify_character(arguments)
             elif name == "reconcile_defensive_stats":
                 return await self._handle_reconcile_defensive_stats(arguments)
             elif name == "analyze_passive_tree":
@@ -1275,6 +1277,25 @@ class PoE2BuildOptimizerMCP:
                             }
                         },
                         "required": ["character_data"],
+                    },
+                ),
+                types.Tool(
+                    name="verify_character",
+                    description=(
+                        "Verify the exact headless PoB2 engine against poe.ninja for one character "
+                        "(poe.ninja numbers are the truth). Runs charModel.pathOfBuildingExport through "
+                        "the engine and diffs defences, overall stats and per-skill damage. Returns "
+                        "verify-report/v1 JSON first, then a markdown diff with failures first. "
+                        "Integers must match exactly; DPS/EHP/max hits within 1%. Needs headless_pob_status ready."
+                    ),
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "char_model": {"type": "object", "description": "poe.ninja charModel dict (needs pathOfBuildingExport)."},
+                            "char_model_path": {"type": "string", "description": "Path to a JSON file holding a charModel (or {\"charModel\": ...})."},
+                            "ninja_url": {"type": "string", "description": "Echoed into the report source block."},
+                        },
+                        "required": [],
                     },
                 ),
                 types.Tool(
@@ -6474,6 +6495,27 @@ Consider:
             logger.error(f"Error validating build constraints: {e}")
             return [types.TextContent(type="text", text=f"Error: {str(e)}")]
 
+    async def _handle_verify_character(self, args: dict) -> List[types.TextContent]:
+        """Exact-engine vs poe.ninja diff (verify-report/v1)."""
+        try:
+            try:
+                from .calculator.reconcile_poe_ninja import format_verify_markdown, reconcile_with_ninja
+            except ImportError:
+                from src.calculator.reconcile_poe_ninja import format_verify_markdown, reconcile_with_ninja
+            cm = args.get("char_model")
+            if not cm and args.get("char_model_path"):
+                cm = json.loads(Path(args["char_model_path"]).read_text(encoding="utf-8"))
+            if isinstance(cm, dict) and "charModel" in cm:
+                cm = cm["charModel"]
+            if not cm or not isinstance(cm, dict):
+                return [types.TextContent(type="text", text="Error: char_model (object) or char_model_path is required.")]
+            report = await asyncio.to_thread(reconcile_with_ninja, cm, None, args.get("ninja_url"))
+            text = json.dumps(report, indent=2, default=str) + "\n\n" + format_verify_markdown(report)
+            return [types.TextContent(type="text", text=text)]
+        except Exception as e:
+            logger.error(f"verify_character error: {e}", exc_info=True)
+            return [types.TextContent(type="text", text=f"verify_character error: {e}")]
+
     async def _handle_reconcile_defensive_stats(self, args: dict) -> List[types.TextContent]:
         """Reconcile local EHP/defense calcs against poe.ninja's defensiveStats
         oracle. The harness shipped in PR #144 but was never registered as an
@@ -6501,6 +6543,16 @@ Consider:
                         ),
                     )
                 ]
+
+            # Exact path first: a full charModel with a PoB export and a ready engine
+            # is diffed against the real PoB2 engine (verify-report/v1).
+            if char_model.get("pathOfBuildingExport"):
+                try:
+                    from .pob import headless as _hl
+                except ImportError:
+                    from src.pob import headless as _hl
+                if _hl.find_environment()["ready"]:
+                    return await self._handle_verify_character({"char_model": char_model})
 
             tolerance_pct = args.get("tolerance_pct") or None
             report = reconcile_defensive_stats(char_model, tolerance_pct=tolerance_pct)

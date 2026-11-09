@@ -24,6 +24,58 @@ BRIDGE = ROOT / "pob_headless" / "bridge.lua"
 HOME = Path(os.environ.get("POE2_POB_HOME", Path.home() / ".cache" / "poe2-mcp"))
 
 
+# ninja defensiveStats key -> (PoB output key, comparison kind). Kinds are defined in
+# calculator/reconcile_poe_ninja.py::_make_row: int (rounded equal), floor, floor100
+# (PoB fraction * 100 floored), pct1 (within 1%), pts (percentage points).
+# Verified against PoB2 Modules/CalcDefence.lua / CalcPerform.lua; see docs/verify/FIELD-MAP.md.
+DEFENCE_FIELD_SET: Dict[str, Any] = {
+    "life": ("Life", "int"),
+    "energyShield": ("EnergyShield", "int"),
+    "mana": ("Mana", "int"),
+    "spirit": ("Spirit", "int"),
+    "strength": ("Str", "int"),
+    "dexterity": ("Dex", "int"),
+    "intelligence": ("Int", "int"),
+    "movementSpeed": ("EffectiveMovementSpeedMod", "floor100"),
+    "evasionRating": ("Evasion", "int"),
+    "armour": ("Armour", "int"),
+    "evadeChance": ("EvadeChance", "int"),
+    "deflectChance": ("DeflectChance", "int"),
+    "fireResistance": ("FireResist", "int"),
+    "coldResistance": ("ColdResist", "int"),
+    "lightningResistance": ("LightningResist", "int"),
+    "chaosResistance": ("ChaosResist", "int"),
+    "fireResistanceOverCap": ("FireResistOverCap", "int"),
+    "coldResistanceOverCap": ("ColdResistOverCap", "int"),
+    "lightningResistanceOverCap": ("LightningResistOverCap", "int"),
+    "chaosResistanceOverCap": ("ChaosResistOverCap", "int"),
+    "enduranceCharges": ("EnduranceCharges", "int"),
+    "frenzyCharges": ("FrenzyCharges", "int"),
+    "powerCharges": ("PowerCharges", "int"),
+    "effectiveHealthPool": ("TotalEHP", "pct1"),
+    "physicalMaximumHitTaken": ("PhysicalMaximumHitTaken", "pct1"),
+    "fireMaximumHitTaken": ("FireMaximumHitTaken", "pct1"),
+    "coldMaximumHitTaken": ("ColdMaximumHitTaken", "pct1"),
+    "lightningMaximumHitTaken": ("LightningMaximumHitTaken", "pct1"),
+    "chaosMaximumHitTaken": ("ChaosMaximumHitTaken", "pct1"),
+}
+DEFENCE_POB_FIELDS: List[str] = sorted({pk for pk, _ in DEFENCE_FIELD_SET.values()})
+POB_COMMIT_PIN = "bb52d6b"  # PoB2 commit the verifier was developed against
+
+
+def pob_commit() -> str:
+    """Short git hash of the PathOfBuilding-PoE2 checkout in use (falls back to the pin)."""
+    src = Path(os.environ.get("POE2_POB_SRC", HOME / "PathOfBuilding-PoE2" / "src"))
+    try:
+        r = subprocess.run(["git", "-C", str(src), "rev-parse", "--short=7", "HEAD"],
+                           capture_output=True, text=True, timeout=10)
+        if r.returncode == 0 and r.stdout.strip():
+            return r.stdout.strip()
+    except Exception:
+        pass
+    return POB_COMMIT_PIN
+
+
 class HeadlessPoBError(RuntimeError):
     pass
 
@@ -130,6 +182,10 @@ class HeadlessPoB:
 
     def load_build(self, code_or_xml: str) -> Dict[str, Any]:
         return self.call("load_xml", xml=decode_pob_code(code_or_xml))
+
+    def get_skill_table(self) -> List[Dict[str, Any]]:
+        """Per enabled socket group: offence keys + damage-type split (bridge ``get_skill_table``)."""
+        return self.call("get_skill_table").get("skills", [])
 
     def close(self) -> None:
         if self.proc and self.proc.poll() is None:
