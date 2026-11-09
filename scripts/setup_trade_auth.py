@@ -254,7 +254,7 @@ async def main():
 
 if __name__ == "__main__":
     if sys.platform == "win32":
-        # Windows-specific: Set up event loop policy
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+        # Playwright spawns a subprocess; only the Proactor loop supports that on Windows.
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
     asyncio.run(main())
