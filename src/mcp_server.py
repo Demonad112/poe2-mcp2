@@ -1294,6 +1294,7 @@ class PoE2BuildOptimizerMCP:
                             "char_model": {"type": "object", "description": "poe.ninja charModel dict (needs pathOfBuildingExport)."},
                             "char_model_path": {"type": "string", "description": "Path to a JSON file holding a charModel (or {\"charModel\": ...})."},
                             "ninja_url": {"type": "string", "description": "Echoed into the report source block."},
+                            "config": {"type": "object", "description": "Optional PoB Configuration-tab overrides for what-if diagnosis (e.g. {\"enemyLightningResist\": 60}). Default: the export's own config. Echoed in the report."},
                         },
                         "required": [],
                     },
@@ -6509,7 +6510,7 @@ Consider:
                 cm = cm["charModel"]
             if not cm or not isinstance(cm, dict):
                 return [types.TextContent(type="text", text="Error: char_model (object) or char_model_path is required.")]
-            report = await asyncio.to_thread(reconcile_with_ninja, cm, None, args.get("ninja_url"))
+            report = await asyncio.to_thread(reconcile_with_ninja, cm, None, args.get("ninja_url"), None, args.get("config"))
             text = json.dumps(report, indent=2, default=str) + "\n\n" + format_verify_markdown(report)
             return [types.TextContent(type="text", text=text)]
         except Exception as e:

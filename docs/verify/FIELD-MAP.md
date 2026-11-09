@@ -34,3 +34,10 @@ Skill match is by skill name against enabled PoB socket groups; a missing name i
 | `split.*` for spell/trigger-path skills (Tempest Bell, Falling Thunder, Storm Wave, Hollow Resonance, Staggering Palm, Whirling Assault) | (b) basis: PoB leaves `HitAverage` 0, only pre-mitigation `StoredCombinedAvg` exists. Report flags the basis. | Open: needs a post-mitigation per-type source (derive from enemy res/armour or read a different PoB key) |
 | `dps` +7.7% to +12.9% (Falling Thunder, Hollow Resonance, Staggering Palm, Storm Wave, Tempest Bell) | unclassified (a) config vs (c) drift. Crit chance/multi and rate rows pass, so hit inputs match; the gap is in mitigation/enemy config. Hollow Focus and Frozen Locus DPS match exactly. | Open: next step is diffing enemy config (level, resists, boss flags) in ninja's export vs headless |
 | `Whirling Assault` dps -26%, dot -55% | unclassified: ninja is higher, opposite direction to the rest; likely skill part/stage or condition config | Open |
+
+### Batch 2, config diagnosis (what-if via `verify_character` `config`)
+
+- The export's own Config has enemy level 82, 50% ele res (placeholders = PoB defaults), pinnacle default; no explicit enemy overrides. `enemyIsBoss` Boss/Uber/None are all further off than the default.
+- Setting ele res to 60 makes Tempest Bell, Storm Wave, Hollow Resonance, Staggering Palm match ninja to 1.000 (Falling Thunder -4.5%), **but** breaks Hollow Focus / Frozen Locus (exact at 50) by about -17%. So this is **not** a global enemy-config difference. Don't apply it as a default.
+- Conclusion: the +7.7%..+12.9% DPS gap is specific to the spell/trigger-path skills (the ones where PoB leaves `HitAverage` at 0). Likely a per-skill mitigation/penetration/exposure or hit-vs-crit handling difference, i.e. (c) engine drift or a skill-specific condition. Still unconfirmed.
+- Whirling Assault is off in the opposite direction at every setting tried (0.74 at default); separate cause.

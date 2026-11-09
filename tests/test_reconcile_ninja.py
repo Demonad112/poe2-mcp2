@@ -114,3 +114,19 @@ def test_split_falls_back_to_combined_and_flags_basis():
     sk = [s for s in r["skills"] if s["name"] == name][0]
     assert sk["mcp"]["split_basis"] == "pre-mitigation StoredCombinedAvg"
     assert any("basis mismatch" in d["cause"] for d in r["diffs"] if ".split." in d["field"] and not d["pass"])
+
+
+def test_config_override_applied_and_echoed():
+    m = _model()
+    calls = []
+
+    class S(StubHeadless):
+        def call(self, action, **p):
+            calls.append((action, p))
+            return {} if action == "set_config" else super().call(action, **p)
+
+    r = rp.reconcile_with_ninja(m, headless=S(m), config={"enemyLightningResist": 60})
+    assert ("set_config", {"config": {"enemyLightningResist": 60}}) in calls
+    assert r["source"]["config_override"] == {"enemyLightningResist": 60}
+    r2 = rp.reconcile_with_ninja(m, headless=StubHeadless(m))
+    assert r2["source"]["config_override"] is None
