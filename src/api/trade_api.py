@@ -23,6 +23,26 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
+SLOT_CATEGORY = {
+    "ring": "accessory.ring",
+    "amulet": "accessory.amulet",
+    "belt": "accessory.belt",
+    "helmet": "armour.helmet",
+    "gloves": "armour.gloves",
+    "boots": "armour.boots",
+    "body": "armour.chest",
+    "chest": "armour.chest",
+    "shield": "armour.shield",
+}
+
+PSEUDO_RES = {
+    "fire": "pseudo.pseudo_total_fire_resistance",
+    "cold": "pseudo.pseudo_total_cold_resistance",
+    "lightning": "pseudo.pseudo_total_lightning_resistance",
+    "chaos": "pseudo.pseudo_total_chaos_resistance",
+}
+
+
 class TradeAPI:
     """
     Official Path of Exile Trade API client
@@ -350,25 +370,26 @@ class TradeAPI:
             if charm_results:
                 results["charms"] = charm_results
 
-        # Search for amulets if needed
-        if "amulet" in item_slots:
-            logger.info("Searching for amulets...")
-            amulet_results = await self._search_amulets_with_stats(
-                league, missing_res, needs_life, max_price_chaos
+        # Every other slot: server-side category + pseudo-stat search
+        for raw_slot in item_slots:
+            slot = str(raw_slot).strip().lower()
+            if slot == "charm":
+                continue
+            category = SLOT_CATEGORY.get(slot)
+            if not category:
+                msg = (
+                    f"[unsupported-slot] '{raw_slot}' is not a searchable slot "
+                    f"(supported: charm, {', '.join(sorted(SLOT_CATEGORY))})"
+                )
+                first_error = first_error or msg
+                continue
+            logger.info(f"Searching {slot} ({category})...")
+            slot_results = await self._search_slot(
+                league, category, missing_res, needs_life, needs_es, max_price_chaos
             )
             first_error = first_error or self.last_error
-            if amulet_results:
-                results["amulets"] = amulet_results
-
-        # Search for helmets if needed
-        if "helmet" in item_slots and (needs_life or needs_es or missing_res):
-            logger.info("Searching for helmets...")
-            helmet_results = await self._search_helmets_with_defenses(
-                league, missing_res, needs_life, needs_es, max_price_chaos
-            )
-            first_error = first_error or self.last_error
-            if helmet_results:
-                results["helmets"] = helmet_results
+            if slot_results:
+                results[slot + "s"] = slot_results
 
         # An error with no results must not look like an empty market
         self.last_error = None if results else first_error
@@ -398,6 +419,42 @@ class TradeAPI:
                 filtered.append(item)
 
         return filtered[:10]
+
+    async def _search_slot(
+        self,
+        league: str,
+        category: str,
+        missing_res: Dict[str, int],
+        needs_life: bool,
+        needs_es: bool,
+        max_price_chaos: Optional[int] = None,
+    ) -> List[Dict[str, Any]]:
+        """Category search with server-side pseudo-stat minimums (cheapest first)."""
+        stats: List[Dict[str, Any]] = []
+        for res, need in (missing_res or {}).items():
+            pid = PSEUDO_RES.get(str(res).lower())
+            if pid and need and need > 0:
+                stats.append({"id": pid, "min": need})
+        if needs_life:
+            stats.append({"id": "pseudo.pseudo_total_life", "min": 40})
+        filters: Dict[str, Any] = {
+            "item_filters": {"type_filters": {"filters": {"category": {"option": category}}}}
+        }
+        if stats:
+            filters["stats"] = stats
+        items = await self.search_items(league, filters, limit=20)
+        if needs_es:
+            items = [i for i in items if any("Energy Shield" in m for m in i.get("explicit_mods", []))]
+        if max_price_chaos:
+            items = [
+                i
+                for i in items
+                if not (
+                    i.get("price", {}).get("currency") == "chaos"
+                    and i.get("price", {}).get("amount", 999) > max_price_chaos
+                )
+            ]
+        return items[:10]
 
     async def _search_amulets_with_stats(
         self,
