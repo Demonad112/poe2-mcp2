@@ -29,7 +29,9 @@ Never read poe2-mcp2/.env. No commits or pushes without asking. No subagents. Ke
 Ninja raw data, if still present: `C:\Users\Addy7\AppData\Local\Temp\claude\85ae98e42ad53793\1d9543af-263e-40a4-8b8e-a19e3220386f\scratchpad\yykiuy.json`
 (re-fetch with `PoeNinjaAPI._fetch_char_model("Demonad112-2589","forbiddenrites","Yykiuy")` if it is gone).
 
-## [ ] Batch 2: fix the MCP where it differs from poe.ninja
+## [x] Batch 2: fix the MCP where it differs from poe.ninja
+
+Closed at 79/105 on Yykiuy. Mapping fixes landed; remaining 26 rows are documented drift (see docs/verify/FIELD-MAP.md). Whirling Assault left as an unexplained known gap.
 
 ```
 Workspace: C:\Dev\projects\POE 2 MCP. Run verify_character on Yykiuy (poe.ninja is the truth). For each failed row, sort it into one of three causes:
