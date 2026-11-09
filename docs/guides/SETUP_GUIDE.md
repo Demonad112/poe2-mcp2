@@ -1,221 +1,155 @@
-# PoE2 MCP Server - Setup Guide
+# PoE2 MCP Server - Setup Guide (fork: Demonad112/poe2-mcp2)
 
-> **Community Project**: This is an independent, fan-made project. Not affiliated with or endorsed by Grinding Gear Games.
+> **Community Project**: Independent, fan-made. Not affiliated with or endorsed by Grinding Gear Games.
 
-## Quick Setup (5 Minutes)
+This fork adds a self-bootstrapping launcher (`scripts/run_mcp.sh`), a headless Path of Building 2
+calc engine (no desktop PoB needed), and a Claude Code cloud flow. Pick one of the three setups below.
 
-### Step 1: Install the Package
+## 1. Claude Code cloud sessions (recommended)
 
-**Option A: PyPI (Recommended)**
+Nothing to install by hand. The repo ships:
+
+- `.mcp.json` - registers `poe2-optimizer` via `bash scripts/run_mcp.sh`.
+- `.claude/settings.json` - `SessionStart` hook that runs `scripts/session_start.sh`, which builds the
+  venv and headless PoB in the background (idempotent, never fails the session).
+- `CLAUDE.md` - the build-analysis workflow (save pasted PoB code to a file, `import_pob`, `headless_pob_calc`).
+
+### Recommended: environment setup script
+
+In the Claude Code environment settings, set the **setup script** so the build happens once at
+container build time rather than at first session:
+
 ```bash
-pip install poe2-mcp
+cd poe2-mcp2 && bash scripts/cloud_setup.sh && bash scripts/setup_headless_pob.sh
 ```
 
-**Option B: From Source**
+What it creates:
+
+| Path | Purpose |
+|---|---|
+| `~/.poe2venv` (+ `.req-stamp`) | Python venv with `requirements.txt`; stamp triggers rebuild when requirements change |
+| `~/.cache/poe2-mcp/LuaJIT` | LuaJIT build used by the calc bridge |
+| `~/.cache/poe2-mcp/PathOfBuilding-PoE2` | PoB2 checkout (headless engine source) |
+| `~/.cache/poe2-mcp/lua_modules` | `lua-utf8` etc. |
+| `data/poe2_optimizer.db` | SQLite DB, created lazily on first server start (`create_all`); git-ignored, not built by a script |
+
+If the setup script is absent, the SessionStart hook performs the same build in the background
+(log: `${TMPDIR:-/tmp}/poe2-session-start.log`). Allow a minute or two on a cold container.
+
+### Network
+
+Allow outbound `github.com` (PoB2 checkout), `www.pathofexile.com` (trade), `poe.ninja` (ladder
+comparison). Package registries are reachable by default.
+
+### Environment variable: `POESESSID`
+
+Only needed for `search_trade_items`. Add it in the **Claude Code environment settings**
+(environment variables) - never in chat, never committed.
+
+1. Log in at pathofexile.com, DevTools > Application > Cookies > `POESESSID`.
+2. Copy the 32-character value into the environment variable `POESESSID`.
+3. Start a new session. `health_check` then reports the trade API as configured.
+
+Without it, trade tools report an auth failure (not "no items"); every other tool works.
+
+### Verify
+
+- `health_check` - database connected, handlers present (a warning about an empty `items` table is expected).
+- `headless_pob_status` - must return `"ready": true`.
+- `headless_pob_calc` with `{"pob_file_path": "<file with PoB code>"}` - PoB-exact DPS/EHP/res/Spirit.
+
+## 2. Local install + Claude Desktop
+
 ```bash
-git clone https://github.com/HivemindOverlord/poe2-mcp.git
-cd poe2-mcp
-pip install -e .
+git clone https://github.com/Demonad112/poe2-mcp2.git
+cd poe2-mcp2
+bash scripts/cloud_setup.sh          # prints the venv python path; creates ~/.poe2venv
+bash scripts/setup_headless_pob.sh   # optional: headless PoB2 (needs git, make, a C compiler, luarocks or equivalent)
 ```
 
-**Option C: .mcpb Bundle**
-1. Download `poe2-mcp-1.0.0.mcpb` from [GitHub Releases](https://github.com/HivemindOverlord/poe2-mcp/releases/latest)
-2. In Claude Desktop: Settings > Extensions > Install Extension
-3. Select the downloaded file
+`scripts/run_mcp.sh` bootstraps the venv and then runs `python -m src.mcp_server` over stdio.
 
-### Step 2: Configure Your AI Assistant
+Edit the Claude Desktop config:
 
-#### Claude Desktop
-
-Edit your config file:
-- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json` (use Git Bash/WSL for the `bash` command)
 - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Linux / WSL**: wherever your client reads it
 
 ```json
 {
   "mcpServers": {
     "poe2-optimizer": {
-      "command": "poe2-mcp"
+      "command": "bash",
+      "args": ["/absolute/path/to/poe2-mcp2/scripts/run_mcp.sh"],
+      "env": {
+        "POESESSID": "optional-32-char-cookie-for-trade-search"
+      }
     }
   }
 }
 ```
 
-Or if running from source:
-```json
-{
-  "mcpServers": {
-    "poe2-optimizer": {
-      "command": "python",
-      "args": ["/path/to/poe2-mcp/launch.py"]
-    }
-  }
-}
-```
+Use an absolute path. Omit the `env` block if you don't need trade search. Restart Claude Desktop afterwards.
 
-Restart Claude Desktop after saving.
+## 3. .mcpb bundle
 
-### Step 3: Verify Installation
+Build with `python scripts/build_mcpb_bundle.py`, then in Claude Desktop: Settings > Extensions > Install
+Extension and select the `.mcpb`. `mcpb_bundle/manifest.json` lists all 48 tools. The bundle excludes the
+SQLite DB (created on first run) and raw extracted game files. Headless PoB is not bundled; run
+`scripts/setup_headless_pob.sh` from a source checkout if you need it.
 
-Ask your AI assistant:
-> "Use the health_check tool to verify the PoE2 MCP server is working"
-
-Expected response includes:
-- Database connected
-- 32 tools registered
-- All handlers present
-
-## What's Included
-
-### 32 MCP Tools
+## Tools (48)
 
 | Category | Tools |
-|----------|-------|
-| Character Analysis | `analyze_character`, `compare_to_top_players`, `import_poe_ninja_url`, `analyze_passive_tree` |
-| Validation | `validate_support_combination`, `validate_build_constraints` |
-| Gem Data | `inspect_support_gem`, `inspect_spell_gem`, `list_all_supports`, `list_all_spells` |
-| Passive Tree | `list_all_keystones`, `inspect_keystone`, `list_all_notables`, `inspect_passive_node` |
-| Base Items | `list_all_base_items`, `inspect_base_item` |
-| Item Mods | `inspect_mod`, `list_all_mods`, `search_mods_by_stat`, `get_mod_tiers`, `validate_item_mods`, `get_available_mods` |
-| Path of Building | `import_pob`, `export_pob`, `get_pob_code` |
+|---|---|
+| Character analysis | `analyze_character`, `compare_to_top_players`, `import_poe_ninja_url`, `analyze_passive_tree`, `get_live_game_state` |
+| Validation | `validate_support_combination`, `validate_build_constraints`, `validate_item_mods`, `reconcile_defensive_stats` |
+| Gem data | `inspect_support_gem`, `inspect_spell_gem`, `list_all_supports`, `list_all_spells` |
+| Passive tree | `list_all_keystones`, `inspect_keystone`, `list_all_notables`, `inspect_passive_node`, `check_tree_freshness` |
+| Base items | `list_all_base_items`, `inspect_base_item` |
+| Item mods | `inspect_mod`, `list_all_mods`, `search_mods_by_stat`, `get_mod_tiers`, `get_available_mods`, `find_stat_sources` |
+| Calculation | `calculate_character_dps`, `headless_pob_status`, `headless_pob_calc` |
+| Path of Building (file/code) | `import_pob`, `export_pob`, `get_pob_code` |
+| Path of Building (live desktop; not in cloud) | `pob_status`, `pob_load_build`, `pob_get_build`, `pob_get_calcs`, `pob_get_passive_tree`, `pob_install_addon` |
 | Trade | `search_items`, `search_trade_items`, `setup_trade_auth` |
-| Knowledge | `explain_mechanic`, `get_formula` |
-| Utility | `health_check`, `clear_cache` |
+| Knowledge | `explain_mechanic`, `get_formula`, `get_game_config` |
+| Utility | `health_check`, `clear_cache`, `check_for_updates`, `report_error` |
 
-### Game Data
+## Environment variables (`.env`)
 
-- 4,975+ passive tree nodes
-- 335+ ascendancy nodes (99% coverage)
-- 14,269 item modifiers
-- Complete skill gem data
-- Support gem interactions
-
-## Optional Setup
-
-### Trade API Authentication
-
-For `search_trade_items` to work, authenticate with pathofexile.com:
+Copy `.env.example` to `.env`. All optional. `SECRET_KEY` / `ENCRYPTION_KEY` are generated per process
+when unset; to persist, generate your own:
 
 ```bash
-pip install playwright
-playwright install chromium
-python -m poe2_mcp.scripts.setup_trade_auth
+python -c "import secrets; print('SECRET_KEY=' + secrets.token_hex(32)); print('ENCRYPTION_KEY=' + secrets.token_hex(32))"
 ```
 
-Or manually:
-1. Log into pathofexile.com in Chrome/Edge
-2. Press F12 > Application > Cookies > pathofexile.com
-3. Copy `POESESSID` value
-4. Add to `.env`: `POESESSID=your_cookie_value`
-
-### Environment Variables
-
-Create `.env` in your working directory (optional):
-
 ```bash
-# For AI-enhanced features (optional)
-ANTHROPIC_API_KEY=sk-ant-...
-
-# For trade search (optional)
-POESESSID=your_session_cookie
-
-# Debug mode
-DEBUG=false
+POESESSID=            # trade search; in cloud sessions set it in environment settings instead
+DATABASE_URL=sqlite:///data/poe2_optimizer.db
 LOG_LEVEL=INFO
 ```
 
-## Testing the Setup
-
-### Test 1: Health Check
-
-Ask your AI:
-> "Run health_check with verbose=true"
-
-### Test 2: Character Analysis
-
-Ask your AI:
-> "Analyze the character 'YourCharacterName' from account 'YourAccountName'"
-
-**Note**: Your character must be:
-- On public profile (pathofexile.com > Account > Privacy Settings)
-- Indexed on poe.ninja (usually requires being on the ladder)
-
-### Test 3: Keystone Lookup
-
-Ask your AI:
-> "Tell me about the Chaos Inoculation keystone"
-
-### Test 4: Support Gem Validation
-
-Ask your AI:
-> "Can I use Faster Projectiles and Slower Projectiles together?"
-
 ## Troubleshooting
 
-### "Server not found" in Claude Desktop
-
-1. Verify Python is in your PATH: `python --version`
-2. Check config path is absolute, not relative
-3. Try running directly: `poe2-mcp` or `python launch.py`
-4. Check Claude Desktop logs for errors
-
-### "No character found"
-
-1. Your profile must be public on pathofexile.com
-2. Character names are case-sensitive
-3. Try using a poe.ninja URL directly with `import_poe_ninja_url`
-4. Wait 10+ minutes after making profile public
-
-### Tools return empty results
-
-1. Run `health_check` to verify database status
-2. Ensure `data/` directory contains JSON files
-3. Try `clear_cache` and retry
-
-### Windows-Specific Issues
-
-If `poe2-mcp` command not found after pip install:
-```bash
-# Add Python Scripts to PATH, or run directly:
-python -m poe2_mcp
-```
-
-### Rate Limiting
-
-If you see rate limit errors:
-- The server has built-in rate limiting
-- Wait a few minutes and retry
-- Reduce request frequency
+| Symptom | Fix |
+|---|---|
+| Server fails / `CONNECT_TIMEOUT` on first launch in a cold container | First launch builds the venv. Run `bash scripts/cloud_setup.sh` once (or use the environment setup script), then reconnect |
+| `headless_pob_status` `ready: false` | `bash scripts/setup_headless_pob.sh` (needs `github.com` reachable) |
+| Trade search returns an auth error | `POESESSID` missing/expired (should be 32 chars); re-copy the cookie |
+| `health_check`: Items table empty | Expected; item data is served from `data/*.json`. Optional: `python scripts/populate_database.py` |
+| Tools return empty results | Confirm `data/` has the JSON files; try `clear_cache` |
+| `bash` not found on Windows | Install Git for Windows or use WSL, or run `python -m src.mcp_server` from the venv directly |
 
 ## Updating
 
-### PyPI Install
-
 ```bash
-pip install --upgrade poe2-mcp
-```
-
-### From Source
-
-```bash
-cd poe2-mcp
 git pull origin main
-pip install -e .
+bash scripts/cloud_setup.sh    # re-syncs the venv when requirements change (stamp-based)
 ```
-
-## Getting Help
-
-- [GitHub Issues](https://github.com/HivemindOverlord/poe2-mcp/issues)
-- [README](../../README.md)
-- [Architecture Docs](../ARCHITECTURE.md)
 
 ## Requirements
 
-- Python 3.9 or higher
-- 50MB disk space (100MB+ with .mcpb bundle)
-- Internet connection for character data
-
----
-
-**Version**: 1.0.0
-**Last Updated**: December 2025
+- Python 3.9+
+- ~100 MB disk for the repo and data, plus the venv and headless PoB cache (~hundreds of MB)
+- Internet for poe.ninja / pathofexile.com features
