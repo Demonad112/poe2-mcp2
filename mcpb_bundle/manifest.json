@@ -4,14 +4,14 @@
   "version": "1.0.0",
   "description": "AI-powered Path of Exile 2 build optimization MCP server. Community project - not affiliated with Grinding Gear Games.",
   "author": {
-    "name": "HivemindOverlord",
-    "url": "https://github.com/HivemindOverlord/poe2-mcp"
+    "name": "Demonad112",
+    "url": "https://github.com/Demonad112/poe2-mcp2"
   },
   "license": "MIT",
-  "homepage": "https://github.com/HivemindOverlord/poe2-mcp",
+  "homepage": "https://github.com/Demonad112/poe2-mcp2",
   "repository": {
     "type": "git",
-    "url": "https://github.com/HivemindOverlord/poe2-mcp.git"
+    "url": "https://github.com/Demonad112/poe2-mcp2.git"
   },
   "keywords": [
     "path-of-exile",
@@ -25,28 +25,158 @@
     "entry_point": "server/launch.py",
     "mcp_config": {
       "command": "python",
-      "args": ["${__dirname}/server/launch.py"],
+      "args": [
+        "${__dirname}/server/launch.py"
+      ],
       "env": {
         "PYTHONPATH": "${__dirname}/server"
       }
     }
   },
   "tools": [
-    { "name": "analyze_character" },
-    { "name": "compare_to_top_players" },
-    { "name": "validate_support_combination" },
-    { "name": "validate_build_constraints" },
-    { "name": "inspect_support_gem" },
-    { "name": "inspect_spell_gem" },
-    { "name": "list_all_supports" },
-    { "name": "list_all_spells" },
-    { "name": "list_all_keystones" },
-    { "name": "inspect_keystone" },
-    { "name": "list_all_mods" },
-    { "name": "inspect_mod" },
-    { "name": "explain_mechanic" },
-    { "name": "get_formula" },
-    { "name": "import_pob" },
-    { "name": "export_pob" }
+    {
+      "name": "analyze_character"
+    },
+    {
+      "name": "analyze_passive_tree"
+    },
+    {
+      "name": "calculate_character_dps"
+    },
+    {
+      "name": "check_for_updates"
+    },
+    {
+      "name": "check_tree_freshness"
+    },
+    {
+      "name": "clear_cache"
+    },
+    {
+      "name": "compare_to_top_players"
+    },
+    {
+      "name": "explain_mechanic"
+    },
+    {
+      "name": "export_pob"
+    },
+    {
+      "name": "find_stat_sources"
+    },
+    {
+      "name": "get_available_mods"
+    },
+    {
+      "name": "get_formula"
+    },
+    {
+      "name": "get_game_config"
+    },
+    {
+      "name": "get_live_game_state"
+    },
+    {
+      "name": "get_mod_tiers"
+    },
+    {
+      "name": "get_pob_code"
+    },
+    {
+      "name": "headless_pob_calc"
+    },
+    {
+      "name": "headless_pob_status"
+    },
+    {
+      "name": "health_check"
+    },
+    {
+      "name": "import_pob"
+    },
+    {
+      "name": "import_poe_ninja_url"
+    },
+    {
+      "name": "inspect_base_item"
+    },
+    {
+      "name": "inspect_keystone"
+    },
+    {
+      "name": "inspect_mod"
+    },
+    {
+      "name": "inspect_passive_node"
+    },
+    {
+      "name": "inspect_spell_gem"
+    },
+    {
+      "name": "inspect_support_gem"
+    },
+    {
+      "name": "list_all_base_items"
+    },
+    {
+      "name": "list_all_keystones"
+    },
+    {
+      "name": "list_all_mods"
+    },
+    {
+      "name": "list_all_notables"
+    },
+    {
+      "name": "list_all_spells"
+    },
+    {
+      "name": "list_all_supports"
+    },
+    {
+      "name": "pob_get_build"
+    },
+    {
+      "name": "pob_get_calcs"
+    },
+    {
+      "name": "pob_get_passive_tree"
+    },
+    {
+      "name": "pob_install_addon"
+    },
+    {
+      "name": "pob_load_build"
+    },
+    {
+      "name": "pob_status"
+    },
+    {
+      "name": "reconcile_defensive_stats"
+    },
+    {
+      "name": "report_error"
+    },
+    {
+      "name": "search_items"
+    },
+    {
+      "name": "search_mods_by_stat"
+    },
+    {
+      "name": "search_trade_items"
+    },
+    {
+      "name": "setup_trade_auth"
+    },
+    {
+      "name": "validate_build_constraints"
+    },
+    {
+      "name": "validate_item_mods"
+    },
+    {
+      "name": "validate_support_combination"
+    }
   ]
 }
