@@ -294,6 +294,7 @@ def reconcile_with_ninja(
     headless: Any = None,
     ninja_url: Optional[str] = None,
     pob_commit: Optional[str] = None,
+    config: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Diff the exact PoB2 engine against poe.ninja for one character.
 
@@ -302,6 +303,8 @@ def reconcile_with_ninja(
         headless: object with ``load_build(code)``, ``call(action, **p)`` and ``get_skill_table()``
             (a started ``HeadlessPoB``). If None a fresh one is started and closed.
         ninja_url / pob_commit: echoed into ``source``; commit is auto-detected when None.
+        config: optional PoB Configuration-tab overrides (e.g. ``{"enemyLightningResist": 60}``) applied
+            after load, for what-if diagnosis. None (default) = the export's own config. Echoed in ``source``.
 
     Returns a ``verify-report/v1`` dict. Failures sort first in ``diffs``.
     """
@@ -319,6 +322,8 @@ def reconcile_with_ninja(
         headless.start()
     try:
         headless.load_build(code)
+        if config:
+            headless.call("set_config", config=config)
         stats = headless.call("get_stats", fields=hl.DEFENCE_POB_FIELDS).get("stats", {})
         table = headless.get_skill_table()
     finally:
@@ -402,7 +407,7 @@ def reconcile_with_ninja(
     return {
         "schema": REPORT_SCHEMA,
         "source": {
-            "ninja_url": ninja_url, "ninja_timestamp": char_model.get("updatedUtc"),
+            "ninja_url": ninja_url, "config_override": config or None, "ninja_timestamp": char_model.get("updatedUtc"),
             "character": char_model.get("name"), "pob_commit": pob_commit or hl.pob_commit(),
             "basis": "exact (headless PoB2)",
         },
