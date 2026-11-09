@@ -84,3 +84,33 @@ def test_markdown_lists_failures_first():
     r = rp.reconcile_with_ninja(m, headless=StubHeadless(m, scale={"life": 2}))
     md = rp.format_verify_markdown(r)
     assert "life" in md and md.index("life") < md.index("energyShield") if "energyShield" in md else True
+
+
+def _split_stub(hit_by_type, comb_by_type):
+    m = _model()
+    name = m["skills"][0]["dps"][0]["name"]
+
+    class S(StubHeadless):
+        def get_skill_table(self):
+            return [{"name": name, "TotalDPS": 1.0, "split": {
+                t.capitalize(): {"hit_average": hit_by_type.get(t, 0), "combined_average": comb_by_type.get(t, 0)}
+                for t in ("physical", "lightning", "cold", "fire", "chaos")}}]
+    return m, name, S(m)
+
+
+def test_split_uses_post_mitigation_hit_average_when_present():
+    # regression: split must come from <Type>HitAverage (ninja basis), not crit-weighted StoredCombinedAvg
+    m, name, stub = _split_stub({"physical": 8, "cold": 34, "lightning": 56, "fire": 2},
+                                {"physical": 50, "cold": 10, "lightning": 10})
+    r = rp.reconcile_with_ninja(m, headless=stub)
+    sk = [s for s in r["skills"] if s["name"] == name][0]
+    assert sk["mcp"]["split_basis"] == "post-mitigation HitAverage"
+    assert sk["mcp"]["split_pct"]["lightning"] == 56.0
+
+
+def test_split_falls_back_to_combined_and_flags_basis():
+    m, name, stub = _split_stub({}, {"physical": 20, "cold": 30, "lightning": 50})
+    r = rp.reconcile_with_ninja(m, headless=stub)
+    sk = [s for s in r["skills"] if s["name"] == name][0]
+    assert sk["mcp"]["split_basis"] == "pre-mitigation StoredCombinedAvg"
+    assert any("basis mismatch" in d["cause"] for d in r["diffs"] if ".split." in d["field"] and not d["pass"])

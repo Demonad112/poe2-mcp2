@@ -361,12 +361,19 @@ def reconcile_with_ninja(
                               "cause": "skill not found among enabled PoB socket groups (disabled, or active skill differs)"})
                 continue
             split = row.get("split", {})
+            hit = {t: (split.get(t.capitalize(), {}) or {}).get("hit_average", 0) or 0 for t in _TYPES}
             comb = {t: (split.get(t.capitalize(), {}) or {}).get("combined_average", 0) or 0 for t in _TYPES}
+            # ninja's split is post-mitigation hit damage = PoB <Type>HitAverage. Some skills (spell/trigger
+            # paths) leave it 0; then only the pre-mitigation StoredCombinedAvg exists (different basis).
+            post_mitigation = sum(hit.values()) > 0
+            if post_mitigation:
+                comb = hit
             tot = sum(comb.values()) or 1
             share = {t: round(comb[t] / tot * 100, 2) for t in _TYPES}
             entry["mcp"] = {
                 "dps": row.get("TotalDPS"), "dot_dps": row.get("TotalDotDPS"),
                 "split_pct": share, "split_avg": comb,
+                "split_basis": "post-mitigation HitAverage" if post_mitigation else "pre-mitigation StoredCombinedAvg",
                 "crit_chance": row.get("CritChance"), "crit_multi": row.get("CritMultiplier"),
                 "rate": row.get("Speed"), "hit_chance": row.get("HitChance"),
             }
@@ -384,8 +391,11 @@ def reconcile_with_ninja(
                         diffs.append(_make_row(f"{f}.{lab}", ent[nk], row.get(pk), "pct1", "damage",
                                                "speed/crit inputs differ: gem level, support, tree or gear mod parse"))
                 for t, v in zip(_TYPES, ent.get("damageTypes") or []):
-                    diffs.append(_make_row(f"{f}.split.{t}", v, share[t], "pts", "damage",
-                                           "damage-type split differs: conversion / gain-as handling or basis (hit vs crit-weighted)"))
+                    cause = ("damage-type split differs: conversion / gain-as handling or PoB config"
+                             if post_mitigation else
+                             "basis mismatch: PoB exposes only pre-mitigation StoredCombinedAvg for this skill "
+                             "(ninja is post-mitigation, so resist/armour effects show as drift)")
+                    diffs.append(_make_row(f"{f}.split.{t}", v, share[t], "pts", "damage", cause))
 
     diffs.sort(key=lambda d: (d["pass"], d["group"], d["field"]))
     failed = [d for d in diffs if not d["pass"]]
