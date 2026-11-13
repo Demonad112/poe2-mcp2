@@ -511,6 +511,8 @@ class PoE2BuildOptimizerMCP:
                 return await self._handle_validate_build_constraints(arguments)
             elif name == "verify_character":
                 return await self._handle_verify_character(arguments)
+            elif name == "suggest_from_ninja":
+                return await self._handle_suggest_from_ninja(arguments)
             elif name == "reconcile_defensive_stats":
                 return await self._handle_reconcile_defensive_stats(arguments)
             elif name == "analyze_passive_tree":
@@ -1277,6 +1279,22 @@ class PoE2BuildOptimizerMCP:
                             }
                         },
                         "required": ["character_data"],
+                    },
+                ),
+                types.Tool(
+                    name="suggest_from_ninja",
+                    description=(
+                        "Offline ranked suggestions from a parsed poe.ninja charModel (no network, no PoB engine): "
+                        "resist shortfall/overcap, weakest max hit, EHP vs smallest hit, main-skill damage split and crit. "
+                        "Baseline is ninja's own numbers. Returns ninja-suggestions/v1 JSON then a markdown table."
+                    ),
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "char_model": {"type": "object", "description": "poe.ninja charModel dict."},
+                            "char_model_path": {"type": "string", "description": "Path to a JSON file holding a charModel (or {\"charModel\": ...})."},
+                        },
+                        "required": [],
                     },
                 ),
                 types.Tool(
@@ -6495,6 +6513,26 @@ Consider:
         except Exception as e:
             logger.error(f"Error validating build constraints: {e}")
             return [types.TextContent(type="text", text=f"Error: {str(e)}")]
+
+    async def _handle_suggest_from_ninja(self, args: dict) -> List[types.TextContent]:
+        """Offline suggestions from a charModel."""
+        try:
+            try:
+                from .calculator.ninja_suggestions import format_suggestions_markdown, suggest_from_charmodel
+            except ImportError:
+                from src.calculator.ninja_suggestions import format_suggestions_markdown, suggest_from_charmodel
+            cm = args.get("char_model")
+            if not cm and args.get("char_model_path"):
+                cm = json.loads(Path(args["char_model_path"]).read_text(encoding="utf-8"))
+            if isinstance(cm, dict) and "charModel" in cm:
+                cm = cm["charModel"]
+            if not cm or not isinstance(cm, dict):
+                return [types.TextContent(type="text", text="Error: char_model (object) or char_model_path is required.")]
+            r = suggest_from_charmodel(cm)
+            return [types.TextContent(type="text", text=json.dumps(r, indent=2) + "\n\n" + format_suggestions_markdown(r))]
+        except Exception as e:
+            logger.error(f"suggest_from_ninja error: {e}", exc_info=True)
+            return [types.TextContent(type="text", text=f"suggest_from_ninja error: {e}")]
 
     async def _handle_verify_character(self, args: dict) -> List[types.TextContent]:
         """Exact-engine vs poe.ninja diff (verify-report/v1)."""
