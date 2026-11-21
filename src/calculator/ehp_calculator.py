@@ -61,7 +61,7 @@ class DefensiveStats:
     Attributes:
         life: Total life pool
         energy_shield: Total energy shield pool
-        runic_ward: Runic Ward pool (PoE2 0.5 - Verisium Runeforging). NOT yet layered into EHP.
+        runic_ward: Runic Ward pool (PoE2 0.5 - Verisium Runeforging). Layered into the hit pool 1:1 for every damage type (PoB TotalHitPool = life + ES + ward; chaos still halves ES only).
         armor: Armor rating (for physical damage reduction)
         evasion: Evasion rating (for hit avoidance)
         block_chance: Block chance % (capped at 50% in PoE2)
@@ -74,7 +74,7 @@ class DefensiveStats:
 
     life: float
     energy_shield: float = 0.0
-    runic_ward: float = 0.0  # TODO: 0.5 - requires local extraction; not yet layered into EHP calc
+    runic_ward: float = 0.0  # layered into the raw HP pool (see _calculate_raw_hp)
     armor: float = 0.0
     evasion: float = 0.0
     block_chance: float = 0.0
@@ -807,9 +807,9 @@ class EHPCalculator:
         if damage_type == DamageType.CHAOS:
             # PoE2: Chaos removes ES at 2× rate
             effective_es = stats.energy_shield / 2.0
-            return stats.life + effective_es
+            return stats.life + effective_es + stats.runic_ward
         else:
-            return stats.life + stats.energy_shield
+            return stats.life + stats.energy_shield + stats.runic_ward
 
     def _calculate_evasion_mitigation(self, stats: DefensiveStats, threat: ThreatProfile) -> float:
         """Calculate mitigation from evasion (chance to avoid hit)."""

@@ -4289,6 +4289,21 @@ Consider:
                             "FireMaximumHitTaken", "ColdMaximumHitTaken", "LightningMaximumHitTaken",
                             "ChaosMaximumHitTaken", "TotalEHP"]
 
+    @staticmethod
+    def _extract_pob_export(args: dict):
+        """Return a PoB export code found in ``character_data`` / ``char_model`` (top level or nested
+        under ``charModel``), else None."""
+        for key in ("character_data", "char_model"):
+            blob = args.get(key)
+            if not isinstance(blob, dict):
+                continue
+            for cand in (blob, blob.get("charModel")):
+                if isinstance(cand, dict):
+                    code = cand.get("pathOfBuildingExport")
+                    if isinstance(code, str) and code.strip():
+                        return code.strip()
+        return None
+
     async def _route_headless_first(self, args: dict, fields: list, python_fn):
         """Use the PoB-exact headless engine when it is ready and a build file is supplied;
         otherwise fall back to the Python calculator, labelled approximate."""
@@ -4297,11 +4312,14 @@ Consider:
         except ImportError:
             from src.pob import headless
         path = args.get("pob_file_path")
-        if path:
+        # A charModel / character_data that carries pathOfBuildingExport is a PoB code in disguise:
+        # route it to the engine too. Without an export there is nothing exact to run.
+        inline_code = None if path else self._extract_pob_export(args)
+        if path or inline_code:
             try:
                 ready = bool(headless.find_environment().get("ready"))
                 if ready:
-                    raw = Path(path).read_text(encoding="utf-8")
+                    raw = Path(path).read_text(encoding="utf-8") if path else inline_code
                     res = await asyncio.to_thread(
                         headless.calc, raw, args.get("config"), args.get("fields") or fields, args.get("level")
                     )
