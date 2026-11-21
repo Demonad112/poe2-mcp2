@@ -228,22 +228,18 @@ def test_apply_resistances_uses_first_damage_type_as_primary(calc):
 
 
 def test_apply_resistances_penetration_cannot_make_negative(calc):
-    """If exposure + penetration would push effective res below 0, clamp at 0
-    (penetration can't ADD damage on top of negative-res enemies)."""
+    """PoB: penetration only reduces POSITIVE resistance, so it neither adds nor removes damage on
+    an enemy already negative from exposure (updated: old test floored at 0, contradicting PoB)."""
     enemy = EnemyStats(fire_resistance=0, fire_exposure=20, fire_penetration=50)
-    # 0 - 20 - 50 = -70 → clamp to 0 → full damage
-    assert calc._apply_resistances(100, ["fire"], enemy) == 100.0
+    # 0 - 20 = -20 (pen ignored) → 120% damage
+    assert calc._apply_resistances(100, ["fire"], enemy) == pytest.approx(120.0)
 
 
 def test_apply_resistances_exposure_alone_can_go_negative(calc):
-    """Negative effective resistance (from exposure WITHOUT pen) means MORE
-    damage taken — exposure on a 0-res enemy goes negative pre-pen-clamp.
-    But with no penetration applied, the max() floor still applies.
-    Wait — re-reading: effective_resistance = max(base - exposure - pen, 0).
-    So even pure exposure on a 0-res enemy clamps to 0. Verify."""
+    """Exposure on a 0-res enemy goes negative and is NOT floored (PoB ResistFloor -200):
+    res 0, exposure 20 → 120% damage (verified vs headless PoB, audit harness)."""
     enemy = EnemyStats(fire_resistance=0, fire_exposure=20)
-    # 0 - 20 - 0 = -20 → clamp to 0 → full damage
-    assert calc._apply_resistances(100, ["fire"], enemy) == 100.0
+    assert calc._apply_resistances(100, ["fire"], enemy) == pytest.approx(120.0)
 
 
 def test_apply_resistances_handles_each_element(calc):

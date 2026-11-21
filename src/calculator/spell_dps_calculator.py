@@ -54,7 +54,10 @@ class CharacterModifiers:
 
     # Critical stats
     added_crit_bonus: float = 100.0  # PoE2 base: +100%
-    increased_crit_chance: float = 0.0
+    increased_crit_chance: float = 0.0  # % increased (multiplies base crit; PoB semantics)
+    more_crit_chance: float = 0.0  # % more crit chance
+    added_crit_chance: float = 0.0  # flat added to base before scaling
+    more_crit_damage: float = 0.0  # % more crit damage bonus (PoB: extraDamage = base*inc*more)
 
     # Archmage
     maximum_mana: float = 0.0
@@ -170,11 +173,17 @@ class SpellDPSCalculator:
             damage_after_more = damage_after_increased * more_multiplier
 
             # Step 6: Calculate expected damage with crits
+            # PoB: (base + added) * (1 + inc/100) * (1 + more/100), clamped to [0, 100]
             crit_chance = (
-                min(spell.base_crit_chance + char_mods.increased_crit_chance, 100.0) / 100.0
+                max(min(
+                    (spell.base_crit_chance + char_mods.added_crit_chance)
+                    * (1.0 + char_mods.increased_crit_chance / 100.0)
+                    * (1.0 + char_mods.more_crit_chance / 100.0),
+                    100.0), 0.0) / 100.0
             )
             crit_multiplier = self._calculate_crit_multiplier(
-                char_mods.added_crit_bonus, char_mods.increased_crit_damage
+                char_mods.added_crit_bonus, char_mods.increased_crit_damage,
+                char_mods.more_crit_damage
             )
 
             non_crit_damage = damage_after_more * (1.0 - crit_chance)
@@ -308,7 +317,9 @@ class SpellDPSCalculator:
             total *= 1.0 + more_percent / 100.0
         return total
 
-    def _calculate_crit_multiplier(self, added_crit_bonus: float, increased_crit: float) -> float:
+    def _calculate_crit_multiplier(
+        self, added_crit_bonus: float, increased_crit: float, more_crit: float = 0.0
+    ) -> float:
         """Calculate critical strike damage multiplier using PoE2 system.
 
         In PoE2, critical strikes have a base +100% damage bonus (200% total).
@@ -322,7 +333,7 @@ class SpellDPSCalculator:
             Total critical strike damage multiplier
 
         Formula:
-            Crit Multiplier = 1 + (Added Bonus / 100) × (1 + Increased / 100)
+            Crit Multiplier = 1 + (Added Bonus / 100) × (1 + Increased / 100) × (1 + More / 100)
 
         Examples:
             >>> calc = SpellDPSCalculator()
@@ -335,7 +346,7 @@ class SpellDPSCalculator:
         total_bonus = added_crit_bonus / 100.0  # Convert % to decimal
         increased_mult = 1.0 + (increased_crit / 100.0)
 
-        return 1.0 + (total_bonus * increased_mult)
+        return 1.0 + (total_bonus * increased_mult * (1.0 + more_crit / 100.0))
 
     def _apply_resistances(
         self, damage: float, damage_types: List[str], enemy: EnemyStats
@@ -387,11 +398,15 @@ class SpellDPSCalculator:
 
         base_res, exposure, penetration = resistance_map[primary_type]
 
-        # Step 1: Apply exposure (can go negative)
-        res_after_exposure = base_res - exposure
+        # Step 1: Apply exposure (can go negative), clamp to PoB's [-200, 90]
+        res_after_exposure = max(min(base_res - exposure, 90.0), -200.0)
 
-        # Step 2: Apply penetration (cannot go below 0%)
-        effective_resistance = max(res_after_exposure - penetration, 0.0)
+        # Step 2: Penetration only reduces positive resistance (PoB CalcOffence: negative res
+        # is NOT floored at 0 and is not made worse by pen)
+        if res_after_exposure > 0:
+            effective_resistance = max(res_after_exposure - penetration, 0.0)
+        else:
+            effective_resistance = res_after_exposure
 
         # Calculate damage multiplier
         damage_multiplier = 1.0 - (effective_resistance / 100.0)

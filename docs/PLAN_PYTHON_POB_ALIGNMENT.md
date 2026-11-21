@@ -10,17 +10,24 @@ Evidence: `docs/AUDIT_PYTHON_VS_POB.md`. Differential harness: `scripts/audit_py
 |---|------|------|--------|
 | 0 | Per-hand output for attack skills (`get_skill_table`) | `pob_headless/bridge.lua` | DONE (17ffdf1) |
 | 1 | Evasion: use `calcs.monsterHitChance` (`1 - 0.95*ev/(ev+4*acc)`), inverse updated | `defense_calculator.py` | DONE (this PR) |
-| 2 | Max-resistance cap per element (PoB `*ResistMax`, default 75, hard 90); EHP hard-wires 75 | `ehp_calculator.py` (`DefensiveStats`, `_calculate_resistance_dr`) | TODO |
-| 3 | Enemy elemental penetration (config `enemy<Type>Pen`): `resMult = 1 - (res>0 and max(res-pen,0) or res)/100` | `ehp_calculator.py` | TODO |
-| 4 | Negative enemy resistance must not be floored at 0 (clamp to [-200, 90]) | `spell_dps_calculator.py::_apply_resistances` | TODO |
-| 5 | Crit chance: `(base+added)*(1+inc/100)*more`, not additive/capped at 100 | `damage_calculator.py`, `spell_dps_calculator.py`, `mcp_server.py::_handle_calculate_character_dps` | TODO |
-| 6 | Crit multiplier ignores MORE modifiers (`extraDamage = base*inc*more`) | `spell_dps_calculator.py::_calculate_crit_multiplier` | TODO |
+| 2 | Max-resistance cap per element (PoB `*ResistMax`, default 75, hard 90); EHP hard-wires 75 | `ehp_calculator.py` (`DefensiveStats`, `_calculate_resistance_dr`) | DONE (this PR) |
+| 3 | Enemy elemental penetration (config `enemy<Type>Pen`): `resMult = 1 - (res>0 and max(res-pen,0) or res)/100` | `ehp_calculator.py` | DONE (this PR) |
+| 4 | Negative enemy resistance must not be floored at 0 (clamp to [-200, 90]) | `spell_dps_calculator.py::_apply_resistances` | DONE (this PR) |
+| 5 | Crit chance: `(base+added)*(1+inc/100)*more`, not additive/capped at 100 | `damage_calculator.py`, `spell_dps_calculator.py`, `mcp_server.py::_handle_calculate_character_dps` | DONE (this PR) |
+| 6 | Crit multiplier ignores MORE modifiers (`extraDamage = base*inc*more`) | `spell_dps_calculator.py::_calculate_crit_multiplier` | DONE (this PR) |
 | 7 | Shock hard-coded 1.2x; speed rounding / server tick | `spell_dps_calculator.py`, `damage_calculator.py` | TODO (minor) |
 | 8 | Structural: chained damage conversion, single inc/more pool | `damage_calculator.py`, `spell_dps_calculator.py` | TODO (large; prefer routing to headless) |
 
 Items 1-5 each reproduce in `scripts/audit_python_vs_headless.py`; 6-8 come from reading the code/PoB source.
 
-## Done in this PR beyond the audit
+## Items 2-6 (this PR)
+- 2/3: `DefensiveStats.<elem>_res_max` (default 75, hard 90) and `ThreatProfile.enemy_<elem>_pen`; resMult = `1 - (res>0 and max(res-pen,0) or res)/100`. PoB default config enemy pen is 3 (derived from harness: Fire/Cold/Lightning max hits now match to <1).
+- 4: negative enemy res no longer floored; clamp [-200, 90]; pen applies only to positive res (existing tests that encoded the floor were updated).
+- 5/6: `CharacterModifiers.added/increased/more_crit_chance`, `more_crit_damage`; crit chance = (base+added)*(1+inc)*(1+more); `damage_calculator` takes a final crit % so needed no change. MCP `calculate_character_dps` exposes the new fields. NOTE: `increased_crit_chance` semantics changed from additive points to PoB's % increased.
+- Tests: `tests/test_pob_alignment.py` (hard-coded PoB values).
+- Setup: `headless.pob_src_dir()` / `setup_headless_pob.sh` now prefer `$POE2_POB_SRC`, then sibling `../PathOfBuilding-PoE2` (user's fork), then the cache clone. Pull the fork to pick up upstream PoB updates; re-run the harness after.
+
+## Done in earlier PR beyond the audit
 - Evasion rewritten to PoB's monster-hit formula; constants `EVASION_MAX_EVADE=0.95`, `EVASION_ACCURACY_FACTOR=4` (legacy 1.25/0.3 kept only as the player->monster formula, unused).
 - Note: PoB rounds hit chance to an integer and returns 5 for `accuracy < 0`; Python does not round, and keeps "accuracy == 0 => 100% evade" (existing behaviour, not PoB).
 - `tests/fixtures/poe_ninja/synthetic_lvl90.json` oracle values regenerated from the corrected calc (they were derived from the old formula, so that fixture is a regression guard only, not real ninja truth).

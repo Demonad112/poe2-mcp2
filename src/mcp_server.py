@@ -1145,8 +1145,11 @@ class PoE2BuildOptimizerMCP:
                             },
                             "increased_crit_chance": {
                                 "type": "number",
-                                "description": "Sum of all %increased crit chance. Default 0.",
+                                "description": "Sum of all %increased crit chance (multiplies base crit, PoB semantics). Default 0.",
                             },
+                            "more_crit_chance": {"type": "number", "description": "%more crit chance. Default 0."},
+                            "added_crit_chance": {"type": "number", "description": "Flat crit chance added to base before scaling. Default 0."},
+                            "more_crit_damage": {"type": "number", "description": "%more crit damage bonus. Default 0."},
                             "added_crit_bonus": {
                                 "type": "number",
                                 "description": (
@@ -4397,6 +4400,9 @@ Consider:
                 added_physical=float(added.get("physical", 0)),
                 added_crit_bonus=float(args.get("added_crit_bonus", 100)),
                 increased_crit_chance=float(args.get("increased_crit_chance", 0)),
+                more_crit_chance=float(args.get("more_crit_chance", 0)),
+                added_crit_chance=float(args.get("added_crit_chance", 0)),
+                more_crit_damage=float(args.get("more_crit_damage", 0)),
                 maximum_mana=float(args.get("max_mana", 0)),
                 has_archmage=bool(args.get("has_archmage", False)),
             )

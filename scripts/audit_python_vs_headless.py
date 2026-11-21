@@ -40,8 +40,13 @@ def main():
                   (DamageType.LIGHTNING, "Lightning"), (DamageType.CHAOS, "Chaos")]:
         ds = DefensiveStats(life=s["Life"], energy_shield=s["EnergyShield"], armor=s["Armour"], evasion=0,
                             fire_res=s["FireResist"], cold_res=s["ColdResist"],
-                            lightning_res=s["LightningResist"], chaos_res=s["ChaosResist"])
-        r = EHPCalculator().calculate_ehp(ds, dt, ThreatProfile(expected_hit_size=5000, attacker_accuracy=acc))
+                            lightning_res=s["LightningResist"], chaos_res=s["ChaosResist"],
+                            # PoB outputs the already-capped value, so max = max(cap seen, 75)
+                            fire_res_max=max(75, s["FireResist"]), cold_res_max=max(75, s["ColdResist"]),
+                            lightning_res_max=max(75, s["LightningResist"]), chaos_res_max=max(75, s["ChaosResist"]))
+        # PoB default config enemy elemental pen = 3 (derived: 4399/maxhit = 1-(res-3)/100)
+        r = EHPCalculator().calculate_ehp(ds, dt, ThreatProfile(expected_hit_size=5000, attacker_accuracy=acc,
+                                          enemy_fire_pen=3, enemy_cold_pen=3, enemy_lightning_pen=3))
         rows.append((f"{k} max hit", s[f"{k}MaximumHitTaken"], r.effective_hp))
     # 3. resistance handling
     sp = SpellDPSCalculator()
