@@ -126,6 +126,21 @@ handlers.get_stats = function(p)
   }
 end
 
+-- Sum raw modDB entries (pre-cap, pre-derived) by name, e.g. {"FireResistMax","ElementalResistMax"}.
+-- Lets callers derive caps from inputs instead of reading PoB's already-capped output.
+handlers.sum_mod = function(p)
+  require_build()
+  local env = build.calcsTab.mainEnv
+  if not env or not env.modDB then error('no calc env') end
+  local names = p.names
+  if type(names) ~= 'table' or #names == 0 then error('names (array) required') end
+  local kind = p.mod_type or 'BASE'
+  local db = (p.db == 'enemy') and env.enemyDB or env.modDB
+  local res = {}
+  for _, n in ipairs(names) do res[n] = db:Sum(kind, nil, n) end
+  return { ok = true, sums = res }
+end
+
 -- Set PoB Configuration-tab inputs (e.g. enemyLevel, conditionEnemyShocked).
 -- Recalculates and returns the stats (optionally restricted to p.fields).
 handlers.set_config = function(p)
