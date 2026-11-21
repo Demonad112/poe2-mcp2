@@ -59,3 +59,23 @@ def test_dps_tool_routes_to_headless_when_ready_and_labels_fallback(tmp_path):
     with mock.patch("src.pob.headless.find_environment", return_value={"ready": False}):
         out = asyncio.run(srv._route_headless_first({"pob_file_path": str(f)}, [], fake_py))
     assert out[0].text.startswith("[approximate")
+
+
+def test_character_data_export_routes_to_headless_else_labelled_fallback():
+    from src.mcp_server import PoE2BuildOptimizerMCP as S
+    srv = S.__new__(S)
+    for args in ({"character_data": {"pathOfBuildingExport": "CODE"}},
+                 {"char_model": {"charModel": {"pathOfBuildingExport": "CODE"}}}):
+        with mock.patch("src.pob.headless.find_environment", return_value={"ready": True}), \
+             mock.patch("src.pob.headless.calc", return_value={"stats": {"TotalDPS": 1.0}}) as c:
+            out = asyncio.run(srv._handle_calculate_character_dps(dict(args)))
+        j = json.loads(out[0].text)
+        assert j["source"] == "headless_pob" and j["exact"] is True
+        assert c.call_args[0][0] == "CODE"
+
+    async def fake_py(a):
+        return [mock.Mock(text="{}")]
+    with mock.patch("src.pob.headless.find_environment", return_value={"ready": True}), \
+         mock.patch("src.pob.headless.calc") as c:
+        out = asyncio.run(srv._route_headless_first({"character_data": {"life": 1}}, [], fake_py))
+    assert out[0].text.startswith("[approximate") and not c.called
