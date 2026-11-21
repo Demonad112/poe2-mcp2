@@ -24,6 +24,18 @@ BRIDGE = ROOT / "pob_headless" / "bridge.lua"
 HOME = Path(os.environ.get("POE2_POB_HOME", Path.home() / ".cache" / "poe2-mcp"))
 
 
+def pob_src_dir() -> Path:
+    """PoB2 ``src`` dir. Order: $POE2_POB_SRC, a sibling ``../PathOfBuilding-PoE2`` checkout
+    (the user's fork, kept current), then the cache clone made by setup_headless_pob.sh."""
+    env = os.environ.get("POE2_POB_SRC")
+    if env:
+        return Path(env)
+    sibling = ROOT.parent / "PathOfBuilding-PoE2" / "src"
+    if (sibling / "HeadlessWrapper.lua").is_file():
+        return sibling
+    return HOME / "PathOfBuilding-PoE2" / "src"
+
+
 # ninja defensiveStats key -> (PoB output key, comparison kind). Kinds are defined in
 # calculator/reconcile_poe_ninja.py::_make_row: int (rounded equal), floor, floor100
 # (PoB fraction * 100 floored), pct1 (within 1%), pts (percentage points).
@@ -65,7 +77,7 @@ POB_COMMIT_PIN = "bb52d6b"  # PoB2 commit the verifier was developed against
 
 def pob_commit() -> str:
     """Short git hash of the PathOfBuilding-PoE2 checkout in use (falls back to the pin)."""
-    src = Path(os.environ.get("POE2_POB_SRC", HOME / "PathOfBuilding-PoE2" / "src"))
+    src = pob_src_dir()
     try:
         r = subprocess.run(["git", "-C", str(src), "rev-parse", "--short=7", "HEAD"],
                            capture_output=True, text=True, timeout=10)
@@ -102,7 +114,7 @@ def luajit_supports_compound_assign(luajit: Optional[str]) -> bool:
 
 
 def find_environment() -> Dict[str, Any]:
-    src = Path(os.environ.get("POE2_POB_SRC", HOME / "PathOfBuilding-PoE2" / "src"))
+    src = pob_src_dir()
     pinned = HOME / "LuaJIT" / "src" / "luajit"  # built by scripts/setup_headless_pob.sh
     luajit = os.environ.get("POE2_LUAJIT") or (str(pinned) if pinned.is_file() else None) or shutil.which("luajit")
     utf8 = HOME / "lua_modules" / "lib" / "lua" / "5.1" / "lua-utf8.so"

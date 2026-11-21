@@ -4,7 +4,12 @@
 # $POE2_POB_HOME (default ~/.cache/poe2-mcp/pob2). Prints the PoB2 `src` dir on stdout.
 set -euo pipefail
 HOME_DIR="${POE2_POB_HOME:-$HOME/.cache/poe2-mcp}"
-SRC="$HOME_DIR/PathOfBuilding-PoE2"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Prefer an existing PoB2 checkout (POE2_POB_SRC, else sibling ../PathOfBuilding-PoE2) so we track
+# the user's fork instead of cloning upstream; fall back to the cache clone.
+if [ -n "${POE2_POB_SRC:-}" ]; then SRC="$(dirname "$POE2_POB_SRC")"
+elif [ -f "$ROOT/../PathOfBuilding-PoE2/src/HeadlessWrapper.lua" ]; then SRC="$(cd "$ROOT/../PathOfBuilding-PoE2" && pwd)"
+else SRC="$HOME_DIR/PathOfBuilding-PoE2"; fi
 LR="$HOME_DIR/lua_modules"
 mkdir -p "$HOME_DIR"
 
