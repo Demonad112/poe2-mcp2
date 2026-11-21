@@ -174,7 +174,7 @@ class DoTCalculator:
         dps_per_stack_final = dps_per_stack * resistance_mult
 
         if enemy.is_shocked:
-            dps_per_stack_final *= 1.2
+            dps_per_stack_final *= enemy.shock_multiplier()
 
         # Duration and expected active stacks. Non-stacking ailments
         # (limit 1) cap at full uptime once applications x duration >= 1.
@@ -204,7 +204,7 @@ class DoTCalculator:
                 "more": round(more_mult, 3),
                 "moving": rule.moving_multiplier if moving else 1.0,
                 "resistance": round(resistance_mult, 3),
-                "shock": 1.2 if enemy.is_shocked else 1.0,
+                "shock": enemy.shock_multiplier() if enemy.is_shocked else 1.0,
             },
         }
 
@@ -252,7 +252,7 @@ class DoTCalculator:
         dps *= resistance_mult
 
         if enemy.is_shocked:
-            dps *= 1.2
+            dps *= enemy.shock_multiplier()
 
         uptime = max(min(skill_dot.uptime, 1.0), 0.0)
         sustained_dps = dps * uptime
@@ -268,7 +268,7 @@ class DoTCalculator:
                 "increased": round(increased_mult, 3),
                 "more": round(more_mult, 3),
                 "resistance": round(resistance_mult, 3),
-                "shock": 1.2 if enemy.is_shocked else 1.0,
+                "shock": enemy.shock_multiplier() if enemy.is_shocked else 1.0,
             },
         }
 

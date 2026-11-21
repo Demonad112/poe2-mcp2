@@ -15,8 +15,8 @@ Evidence: `docs/AUDIT_PYTHON_VS_POB.md`. Differential harness: `scripts/audit_py
 | 4 | Negative enemy resistance must not be floored at 0 (clamp to [-200, 90]) | `spell_dps_calculator.py::_apply_resistances` | DONE (this PR) |
 | 5 | Crit chance: `(base+added)*(1+inc/100)*more`, not additive/capped at 100 | `damage_calculator.py`, `spell_dps_calculator.py`, `mcp_server.py::_handle_calculate_character_dps` | DONE (this PR) |
 | 6 | Crit multiplier ignores MORE modifiers (`extraDamage = base*inc*more`) | `spell_dps_calculator.py::_calculate_crit_multiplier` | DONE (this PR) |
-| 7 | Shock hard-coded 1.2x; speed rounding / server tick | `spell_dps_calculator.py`, `damage_calculator.py` | TODO (minor) |
-| 8 | Structural: chained damage conversion, single inc/more pool | `damage_calculator.py`, `spell_dps_calculator.py` | TODO (large; prefer routing to headless) |
+| 7 | Shock hard-coded 1.2x; speed rounding / server tick | `spell_dps_calculator.py`, `damage_calculator.py` | DONE (speed tick cap, shock magnitude) |
+| 8 | Structural: chained damage conversion, single inc/more pool | `damage_calculator.py`, `spell_dps_calculator.py` | ROUTED: `calculate_character_dps` / `calculate_ehp` call `headless.calc` when ready and `pob_file_path` is given; Python fallback labelled "approximate" (`_route_headless_first`, tested with engine mocked) |
 
 Items 1-5 each reproduce in `scripts/audit_python_vs_headless.py`; 6-8 come from reading the code/PoB source.
 

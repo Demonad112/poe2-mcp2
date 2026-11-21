@@ -2905,7 +2905,7 @@ Consider:
             logger.error(f"Gear evaluation failed: {e}", exc_info=True)
             return [types.TextContent(type="text", text=f"Gear evaluation failed: {str(e)}")]
 
-    async def _handle_calculate_ehp(self, args: dict) -> List[types.TextContent]:
+    async def _calculate_ehp_python(self, args: dict) -> List[types.TextContent]:
         """Handle EHP calculation"""
         try:
             if not self.ehp_calculator:
@@ -4282,7 +4282,44 @@ Consider:
         )
         return response
 
+    _HEADLESS_DPS_FIELDS = ["CombinedDPS", "TotalDPS", "FullDPS", "Speed", "CritChance", "CritMultiplier",
+                            "HitChance"]
+    _HEADLESS_EHP_FIELDS = ["Life", "EnergyShield", "Armour", "Evasion", "EvadeChance", "FireResist",
+                            "ColdResist", "LightningResist", "ChaosResist", "PhysicalMaximumHitTaken",
+                            "FireMaximumHitTaken", "ColdMaximumHitTaken", "LightningMaximumHitTaken",
+                            "ChaosMaximumHitTaken", "TotalEHP"]
+
+    async def _route_headless_first(self, args: dict, fields: list, python_fn):
+        """Use the PoB-exact headless engine when it is ready and a build file is supplied;
+        otherwise fall back to the Python calculator, labelled approximate."""
+        try:
+            from .pob import headless
+        except ImportError:
+            from src.pob import headless
+        path = args.get("pob_file_path")
+        if path:
+            try:
+                ready = bool(headless.find_environment().get("ready"))
+                if ready:
+                    raw = Path(path).read_text(encoding="utf-8")
+                    res = await asyncio.to_thread(
+                        headless.calc, raw, args.get("config"), args.get("fields") or fields, args.get("level")
+                    )
+                    res = {"source": "headless_pob", "exact": True, **res}
+                    return [types.TextContent(type="text", text=json.dumps(res, indent=2, default=str))]
+            except Exception as e:  # fall through to the Python path
+                logger.warning("headless route failed, using Python fallback: %s", e)
+        out = await python_fn(args)
+        label = "[approximate: Python fallback, not PoB-exact; pass pob_file_path with the headless engine ready for exact numbers]\n"
+        return [types.TextContent(type="text", text=label + "\n".join(getattr(t, "text", "") for t in out))]
+
     async def _handle_calculate_character_dps(self, args: dict) -> List[types.TextContent]:
+        return await self._route_headless_first(args, self._HEADLESS_DPS_FIELDS, self._calculate_character_dps_python)
+
+    async def _handle_calculate_ehp(self, args: dict) -> List[types.TextContent]:
+        return await self._route_headless_first(args, self._HEADLESS_EHP_FIELDS, self._calculate_ehp_python)
+
+    async def _calculate_character_dps_python(self, args: dict) -> List[types.TextContent]:
         """Server-side spell DPS calculation. P5 / Issue #114.
 
         The MCP-as-math-engine principle: the AI passes pre-aggregated modifiers
@@ -4422,6 +4459,7 @@ Consider:
                 cold_penetration=float(enemy_in.get("cold_penetration", 0)),
                 lightning_penetration=float(enemy_in.get("lightning_penetration", 0)),
                 is_shocked=bool(enemy_in.get("is_shocked", False)),
+                shock_magnitude=float(enemy_in.get("shock_magnitude", 20)),
             )
 
             # ---- Run the math ----
