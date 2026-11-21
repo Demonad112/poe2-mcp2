@@ -73,3 +73,14 @@ Probed by dumping enemy-side values from the headless engine (temporary bridge h
 | damage | skills[].dps[].dps, critChance, critMultiplier, rate | Advanced > DPS matrix | match (Storm Wave +0.17%, in tolerance) |
 | damage | damageTypes[] | Advanced > DPS matrix; Damage review | **mismatch: lightning/fire swapped** (see APP-FIX-LIST.md #1) |
 | tree | passives node ids | Overview warning; Advanced > Passive tree | **3 ids unresolved** (APP-FIX-LIST.md #2) |
+
+## Re-verification (Yykiuy fixture, engine 601768b) — 87/105 pass, 18 fail
+
+Run fully offline (network namespace, `curl poe.ninja` fails) with the headless engine and `tests/fixtures/ninja_yykiuy_charmodel.json`. Live `ninja_url` check not done: the model endpoint returned 404.
+
+| Class | Rows | Result |
+|---|---|---|
+| (c) engine drift | 0 | bb52d6b→601768b changes DLLs only (0 Lua changes). `POB_COMMIT_PIN` left at bb52d6b; nothing re-baselined. |
+| (a) config differs | 0 | none |
+| (b) mapping error | 8 fixed (79→87) | `split.cold` (Falling Thunder, Hollow Resonance, Staggering Palm, Storm Wave, Tempest Bell, Whirling Assault), `split.lightning` + `split.physical` (Storm Wave). Fixed by commit 17ffdf1 (per-hand attack output in the bridge); regression: `tests/test_headless_skill_table.py::test_attack_rows_read_per_hand_output`. Confirmed by running the pre-17ffdf1 bridge on the same engine. |
+| open | 18 | Unchanged documented drift rows (spell/trigger-path skills) plus Whirling Assault, cause unexplained. |

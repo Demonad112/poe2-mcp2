@@ -89,7 +89,19 @@ class EnemyStats:
     lightning_penetration: float = 0.0
 
     # Modifiers
-    is_shocked: bool = False  # 20% more damage taken
+    is_shocked: bool = False
+    shock_magnitude: float = 20.0  # PoB BaseShockMagnitude (Data/Misc.lua), clamped 20..100
+
+
+def _shock_multiplier(self) -> float:
+    """PoB: damage taken x (1 + magnitude/100); magnitude 20 (Base) .. 100 (Max)."""
+    return 1.0 + max(20.0, min(100.0, self.shock_magnitude)) / 100.0
+
+
+EnemyStats.shock_multiplier = _shock_multiplier  # type: ignore[attr-defined]
+
+# PoB data.misc.ServerTickRate = 1 / 0.033 (Modules/Data.lua)
+SERVER_TICK_RATE = 1 / 0.033
 
 
 class SpellDPSCalculator:
@@ -197,7 +209,7 @@ class SpellDPSCalculator:
 
             # Step 8: Apply Shock if applicable
             if enemy.is_shocked:
-                damage_after_resistance *= 1.2  # 20% more damage
+                damage_after_resistance *= enemy.shock_multiplier()
 
             # Step 9: Calculate DPS (damage × casts per second)
             cast_speed = self._calculate_cast_speed(
@@ -439,7 +451,7 @@ class SpellDPSCalculator:
         """
         cast_speed_multiplier = 1.0 + (increased_cast_speed / 100.0)
         actual_cast_time = base_cast_time / cast_speed_multiplier
-        return 1.0 / actual_cast_time
+        return min(1.0 / actual_cast_time, SERVER_TICK_RATE)  # PoB caps Speed at the server tick rate
 
     def get_spell_by_name(self, spell_name: str) -> Optional[SpellStats]:
         """Retrieve spell statistics from the spell database.
