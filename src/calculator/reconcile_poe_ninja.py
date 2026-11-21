@@ -396,7 +396,9 @@ def reconcile_with_ninja(
                         diffs.append(_make_row(f"{f}.{lab}", ent[nk], row.get(pk), "pct1", "damage",
                                                "speed/crit inputs differ: gem level, support, tree or gear mod parse"))
                 for t, v in zip(_TYPES, ent.get("damageTypes") or []):
-                    cause = ("damage-type split differs: conversion / gain-as handling or PoB config"
+                    cause = ("damage-type split differs: conversion / gain-as handling or PoB config; on this fixture the physical "
+                             "share is lower in PoB because the engine applies enemy armour reduction (phys is "
+                             "post-armour, elemental is post-res) and ninja's split does not (config/basis, not a mapping error)"
                              if post_mitigation else
                              "basis mismatch: PoB exposes only pre-mitigation StoredCombinedAvg for this skill "
                              "(ninja is post-mitigation, so resist/armour effects show as drift)")
