@@ -373,3 +373,4 @@ data/extracted_mod_stats.json
 data/version.json
 data/complete_models/all_ascendancies.json
 data/complete_models/passive_tree_complete.json
+.cache/

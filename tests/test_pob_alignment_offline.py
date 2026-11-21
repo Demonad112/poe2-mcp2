@@ -79,3 +79,24 @@ def test_character_data_export_routes_to_headless_else_labelled_fallback():
          mock.patch("src.pob.headless.calc") as c:
         out = asyncio.run(srv._route_headless_first({"character_data": {"life": 1}}, [], fake_py))
     assert out[0].text.startswith("[approximate") and not c.called
+
+
+def test_runic_ward_is_layered_into_hit_pool_like_pob():
+    """PoB TotalHitPool = life + ES + ward (audited: 1494 + 2621 + 423 = 4538); chaos halves ES only."""
+    from src.calculator.ehp_calculator import EHPCalculator, DefensiveStats, ThreatProfile, DamageType
+    base = dict(life=1494, energy_shield=2621)
+    c = EHPCalculator()
+    tp = ThreatProfile(expected_hit_size=5000)
+    a = c.calculate_ehp(DefensiveStats(**base, runic_ward=423), DamageType.PHYSICAL, tp).effective_hp
+    b = c.calculate_ehp(DefensiveStats(**base), DamageType.PHYSICAL, tp).effective_hp
+    assert a - b == pytest.approx(423, rel=1e-3)
+    ch = c.calculate_ehp(DefensiveStats(**base, runic_ward=423, chaos_res=0), DamageType.CHAOS, tp).effective_hp
+    ch0 = c.calculate_ehp(DefensiveStats(**base, chaos_res=0), DamageType.CHAOS, tp).effective_hp
+    assert ch - ch0 == pytest.approx(423, rel=1e-3)
+
+
+def test_max_res_derived_from_raw_modsum_not_from_engine_output():
+    import importlib.util, pathlib
+    spec = importlib.util.spec_from_file_location("audit", pathlib.Path(__file__).parents[1] / "scripts/audit_python_vs_headless.py")
+    m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+    assert m.python_max_res(75) == 75 and m.python_max_res(80) == 80 and m.python_max_res(120) == 90
