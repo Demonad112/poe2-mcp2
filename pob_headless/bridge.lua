@@ -174,6 +174,8 @@ end
 -- Per-skill damage table: for every enabled socket group, make it the main group,
 -- recalc and read the offence keys (confirmed against Modules/CalcOffence.lua,
 -- PoB2 commit in headless.py POB_COMMIT). The original main group is restored.
+-- Per-hand-only keys (set in the damage pass, not combined onto global output).
+local HAND_KEYS = { 'AverageHit', 'TotalMin', 'TotalMax', 'AverageDamage', 'CritChance', 'CritMultiplier', 'HitChance', 'TotalDPS' }
 local DMG_TYPES = { 'Physical', 'Lightning', 'Cold', 'Fire', 'Chaos' }
 local SKILL_KEYS = {
   'TotalDPS', 'FullDPS', 'CombinedDPS', 'TotalDotDPS', 'AverageDamage', 'AverageHit', 'TotalMin', 'TotalMax',
@@ -194,6 +196,21 @@ handlers.get_skill_table = function(p)
         local name = sk and sk.activeEffect and sk.activeEffect.grantedEffect and sk.activeEffect.grantedEffect.name
         if name then
           local row = scalars(out, SKILL_KEYS)
+          -- Attacks run per-hand damage passes (docs/calcOffence.md): the damage pass writes
+          -- AverageHit/TotalMin/TotalMax/<Type>HitAverage to output.MainHand/OffHand and
+          -- CalcOffence only combineStat()s a subset onto the global output. Read the hand
+          -- output directly. Single-weapon attacks use MainHand; dual-wield exposes both.
+          local mh, oh = out.MainHand, out.OffHand
+          local hand = (type(mh) == 'table') and mh or nil
+          local dual = hand ~= nil and type(oh) == 'table' and (oh.TotalDPS or oh.AverageHit) ~= nil
+          if hand and not dual then
+            for _, k in ipairs(HAND_KEYS) do
+              if row[k] == nil and type(hand[k]) == 'number' then row[k] = hand[k] end
+            end
+          end
+          if dual then
+            row.per_hand = { MainHand = scalars(mh, HAND_KEYS), OffHand = scalars(oh, HAND_KEYS) }
+          end
           row.index = gi
           row.name = name
           row.label = g.displayLabel or g.label
@@ -201,8 +218,10 @@ handlers.get_skill_table = function(p)
           row.gem_quality = sk.activeEffect.quality
           local split = {}
           for _, t in ipairs(DMG_TYPES) do
+            local src = out
+            if out[t .. 'HitAverage'] == nil and hand and not dual then src = hand end
             split[t] = {
-              hit_average = out[t .. 'HitAverage'] or 0,
+              hit_average = src[t .. 'HitAverage'] or 0,
               combined_average = out[t .. 'StoredCombinedAvg'] or 0,
             }
           end

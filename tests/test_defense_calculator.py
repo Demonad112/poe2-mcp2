@@ -57,8 +57,8 @@ def test_armor_constants():
 def test_evasion_constants():
     assert DefenseConstants.EVASION_MIN_HIT_CHANCE == 5.0
     assert DefenseConstants.EVASION_MAX_HIT_CHANCE == 100.0
-    assert DefenseConstants.EVASION_ACCURACY_MULTIPLIER == 1.25
-    assert DefenseConstants.EVASION_DIVISOR == 0.3
+    assert DefenseConstants.EVASION_MAX_EVADE == 0.95
+    assert DefenseConstants.EVASION_ACCURACY_FACTOR == 4
 
 
 def test_es_constants_poe2_specific():
@@ -126,7 +126,7 @@ def test_armor_dr_caps_at_90_percent(calc):
 
 
 # ---------------------------------------------------------------------------
-# calculate_evasion_chance — formula: Hit% = (Acc * 1.25 * 100) / (Acc + Eva * 0.3)
+# calculate_evasion_chance — PoB2 monsterHitChance: Hit% = (1 - 0.95*Eva/(Eva + 4*Acc)) * 100
 # ---------------------------------------------------------------------------
 
 
@@ -144,10 +144,10 @@ def test_evasion_zero_accuracy_means_zero_hit_100_evade(calc):
 
 def test_evasion_hit_chance_capped_minimum_5_percent(calc):
     """Massive evasion still leaves a 5% min hit chance — game design."""
+    # Asymptotic: 1 - 0.95*ev/(ev+4*acc) approaches but never reaches 5% for finite evasion.
     result = calc.calculate_evasion_chance(1_000_000, 100)
-    assert result.hit_chance_percent == DefenseConstants.EVASION_MIN_HIT_CHANCE
-    assert result.evade_chance_percent == 95.0
-    assert result.is_hit_capped is True
+    assert math.isclose(result.hit_chance_percent, DefenseConstants.EVASION_MIN_HIT_CHANCE, abs_tol=0.05)
+    assert math.isclose(result.evade_chance_percent, 95.0, abs_tol=0.05)
 
 
 def test_evasion_hit_chance_capped_maximum_100_percent(calc):
@@ -156,13 +156,13 @@ def test_evasion_hit_chance_capped_maximum_100_percent(calc):
     # No evasion, all-accuracy attacker → 100% hit
     assert result.hit_chance_percent == DefenseConstants.EVASION_MAX_HIT_CHANCE
     assert result.evade_chance_percent == 0.0
-    assert result.is_hit_capped is True
 
 
 def test_evasion_known_formula_value(calc):
-    """Eva=1000, Acc=1000: Hit = (1000*1.25*100)/(1000 + 1000*0.3) = 125000/1300 ≈ 96.15%."""
+    """Eva=1000, Acc=1000: Hit = (1 - 0.95*1000/(1000+4000))*100 = 81%."""
     result = calc.calculate_evasion_chance(1000, 1000)
-    expected_hit = (1000 * 1.25 * 100) / (1000 + 1000 * 0.3)
+    expected_hit = (1 - 0.95 * 1000 / (1000 + 4 * 1000)) * 100
+    assert math.isclose(expected_hit, 81.0)
     assert math.isclose(result.hit_chance_percent, expected_hit, abs_tol=0.01)
 
 
@@ -313,7 +313,7 @@ def test_evasion_chance_helper_returns_evade_not_hit():
     documented in the docstring. Catches misuse."""
     val = evasion_chance(1_000_000, 100)
     # Massive evasion → ~95% evade (5% min hit)
-    assert math.isclose(val, 95.0)
+    assert math.isclose(val, 95.0, abs_tol=0.05)
 
 
 def test_resistance_dr_helper_uses_default_cap():
@@ -329,3 +329,15 @@ def test_resistance_dr_helper_explicit_cap():
 def test_block_effective_helper_caps_at_50():
     assert block_effective(75) == 50.0
     assert block_effective(40) == 40.0
+
+
+def test_evasion_needed_inverts_monster_hit_chance(calc):
+    """evasion_needed_for_hit_chance must round-trip through calculate_evasion_chance."""
+    for target in (20.0, 50.0, 80.0):
+        ev = calc.evasion_needed_for_hit_chance(target, 2000)
+        assert math.isclose(calc.calculate_evasion_chance(ev, 2000).hit_chance_percent, target, abs_tol=0.01)
+
+
+def test_evasion_matches_pob_reference_point(calc):
+    """PoB calcs.monsterHitChance(2000, 2000) = 81% hit -> 19% evade (audit item 1)."""
+    assert math.isclose(calc.calculate_evasion_chance(2000, 2000).evade_chance_percent, 19.0, abs_tol=0.5)

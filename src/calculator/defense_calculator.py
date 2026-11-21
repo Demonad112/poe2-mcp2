@@ -29,8 +29,13 @@ class DefenseConstants:
     # Evasion
     EVASION_MIN_HIT_CHANCE = 5.0  # Minimum hit chance (%)
     EVASION_MAX_HIT_CHANCE = 100.0  # Maximum hit chance (%)
-    EVASION_ACCURACY_MULTIPLIER = 1.25  # Accuracy multiplier in formula
-    EVASION_DIVISOR = 0.3  # Evasion divisor in formula
+    # Monster -> player hit chance (PoB2 calcs.monsterHitChance):
+    #   hit% = (1 - EVASION_MAX_EVADE * ev / (ev + EVASION_ACCURACY_FACTOR * acc)) * 100
+    EVASION_MAX_EVADE = 0.95  # Asymptotic max evade fraction (=> 5% min hit chance)
+    EVASION_ACCURACY_FACTOR = 4  # Accuracy weight in the denominator
+    # Legacy player -> monster formula (PoB2 calcs.hitChance); NOT used for player evasion.
+    EVASION_ACCURACY_MULTIPLIER = 1.25
+    EVASION_DIVISOR = 0.3
 
     # Energy Shield
     ES_BASE_RECHARGE_RATE = 12.5  # Base recharge rate (%/second) - PoE2 specific
@@ -254,11 +259,11 @@ class DefenseCalculator:
 
     def calculate_evasion_chance(self, evasion: float, attacker_accuracy: float) -> EvasionResult:
         """
-        Calculate chance to evade using PoE2 formula.
+        Calculate chance to evade a monster attack (PoB2 calcs.monsterHitChance).
 
-        PoE2 Formula:
-            Hit_Chance = (Accuracy × 1.25 × 100) / (Accuracy + Evasion × 0.3)
-            Caps: 5% min, 100% max
+        Formula:
+            Hit_Chance = (1 - 0.95 × Evasion / (Evasion + 4 × Accuracy)) × 100
+            Caps: 5% min, 100% max (PoB additionally rounds to an integer; not done here)
 
         Args:
             evasion: Total evasion rating
@@ -290,11 +295,13 @@ class DefenseCalculator:
                 is_hit_capped=False,
             )
 
-        # PoE2 formula: Hit_Chance = (Accuracy × 1.25 × 100) / (Accuracy + Evasion × 0.3)
-        numerator = attacker_accuracy * DefenseConstants.EVASION_ACCURACY_MULTIPLIER * 100
-        denominator = attacker_accuracy + (evasion * DefenseConstants.EVASION_DIVISOR)
-
-        hit_chance_percent = numerator / denominator if denominator > 0 else 100.0
+        # PoB2 calcs.monsterHitChance: 1 - 0.95*ev / (ev + 4*acc)
+        denominator = evasion + DefenseConstants.EVASION_ACCURACY_FACTOR * attacker_accuracy
+        hit_chance_percent = (
+            (1 - DefenseConstants.EVASION_MAX_EVADE * evasion / denominator) * 100
+            if denominator > 0
+            else 100.0
+        )
 
         # Apply caps
         is_hit_capped = False
@@ -326,8 +333,8 @@ class DefenseCalculator:
         """
         Calculate evasion needed to reduce hit chance to target value.
 
-        Rearranged PoE2 formula:
-            E = (Accuracy × 1.25 × 100 - Hit_Chance × Accuracy) / (Hit_Chance × 0.3)
+        Rearranged monsterHitChance formula (x = 1 - Hit/100):
+            E = 4 × Accuracy × x / (0.95 - x)
 
         Args:
             target_hit_chance_percent: Target hit chance (%)
@@ -355,15 +362,14 @@ class DefenseCalculator:
             logger.warning("Attacker accuracy <= 0, cannot calculate evasion needed")
             return 0.0
 
-        # Rearrange: Hit = (Acc × 1.25 × 100) / (Acc + Eva × 0.3)
-        # -> E = (Acc × 1.25 × 100 - Hit × Acc) / (Hit × 0.3)
-        numerator = (
-            attacker_accuracy * DefenseConstants.EVASION_ACCURACY_MULTIPLIER * 100
-            - target_hit_chance_percent * attacker_accuracy
+        # Rearrange: Hit/100 = 1 - 0.95*E/(E+4A)  ->  E = 4*A*x / (0.95 - x), x = 1 - Hit/100
+        x = 1 - target_hit_chance_percent / 100
+        max_evade = DefenseConstants.EVASION_MAX_EVADE
+        evasion_needed = (
+            DefenseConstants.EVASION_ACCURACY_FACTOR * attacker_accuracy * x / (max_evade - x)
+            if max_evade > x
+            else 0.0
         )
-        denominator = target_hit_chance_percent * DefenseConstants.EVASION_DIVISOR
-
-        evasion_needed = numerator / denominator if denominator > 0 else 0.0
         evasion_needed = max(0.0, evasion_needed)
 
         logger.debug(
