@@ -31,7 +31,7 @@ base DPS from the caller and the server does the modifier math.
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 try:
     from .spell_dps_calculator import EnemyStats
@@ -94,6 +94,40 @@ class AilmentInput:
 
 
 @dataclass
+class AilmentHitRange:
+    """Pre-mitigation min/max of the applying hit (summed over the ailment's
+    basis types) plus crit chance. When supplied, ailment magnitude follows
+    PoB's CalcOffence.lua model instead of the flat expected hit: when more
+    applications land than can be active (stack potential > 1), only the
+    strongest survive, so the effective roll shifts toward the top of the
+    range and a crit-sourced instance is more likely to be present."""
+
+    hit_min: float
+    hit_max: float
+    crit_min: float = 0.0
+    crit_max: float = 0.0
+    crit_chance_pct: float = 0.0
+    # Ailment chance on a crit; None = same as AilmentInput.chance_pct. PoE2
+    # buildup-based ignite/shock chance scales with damage, so crits differ.
+    chance_on_crit_pct: Optional[float] = None
+
+
+def ailment_roll_and_crit(
+    stacks: float, max_stacks: float, crit_chance_pct: float
+) -> Tuple[float, float]:
+    """PoB CalcOffence.lua: (average roll as a 0..1 fraction of the hit range,
+    effective crit chance %) given uncapped active stacks and the stack limit."""
+    potential = stacks / max_stacks if max_stacks > 0 else 0.0
+    if potential > 1:
+        roll = (stacks - (max_stacks - 1) / 2) / (stacks + 1)
+    else:
+        roll = 0.5
+    cc = min(max(crit_chance_pct, 0.0), 100.0) / 100.0
+    eff_crit = 100.0 * (1 - (1 - cc) ** max(potential, 1.0))
+    return roll, eff_crit
+
+
+@dataclass
 class SkillDoTInput:
     """Caller-supplied skill DoT (e.g. Essence Drain) — see module docstring
     for why base DPS comes from the caller."""
@@ -117,6 +151,7 @@ class DoTCalculator:
         hit_damage_by_type: Dict[str, float],
         hits_per_second: float,
         enemy: Optional[EnemyStats] = None,
+        hit_range: Optional[AilmentHitRange] = None,
     ) -> Dict[str, Any]:
         """
         Expected sustained DPS from one ailment.
@@ -129,6 +164,9 @@ class DoTCalculator:
             hits_per_second: Application attempts per second (casts/sec
                 for spells, attacks/sec for attacks).
             enemy: Enemy stats for resistance/shock; None = no mitigation.
+            hit_range: Optional min/max hit + crit chance of the applying hit.
+                When given, the basis is PoB's strongest-instance weighting
+                (see AilmentHitRange) and hit_damage_by_type is ignored.
 
         Returns:
             Breakdown dict; {"error": ...} for an unknown ailment.
@@ -143,8 +181,37 @@ class DoTCalculator:
             }
         enemy = enemy or EnemyStats()
 
+        # Duration and expected active stacks. Non-stacking ailments
+        # (limit 1) cap at full uptime once applications x duration >= 1.
+        duration = rule.base_duration * (1.0 + ailment_input.increased_duration / 100.0)
+        on_hit = max(min(ailment_input.chance_pct, 100.0), 0.0) / 100.0
+        on_crit = on_hit
+        base_cc = 0.0
+        if hit_range is not None:
+            base_cc = min(max(hit_range.crit_chance_pct, 0.0), 100.0) / 100.0
+            if hit_range.chance_on_crit_pct is not None:
+                on_crit = max(min(hit_range.chance_on_crit_pct, 100.0), 0.0) / 100.0
+        applications_per_second = hits_per_second * (on_hit * (1 - base_cc) + on_crit * base_cc)
+        stack_limit = float(max(ailment_input.stack_limit, 0))
+        uncapped_stacks = applications_per_second * duration
+        expected_active_stacks = min(uncapped_stacks, stack_limit)
+
         # Base: fraction of the relevant hit damage per second
-        basis_damage = sum(hit_damage_by_type.get(t, 0.0) for t in rule.basis_types)
+        roll = eff_crit = None
+        if hit_range is not None:
+            roll, eff_crit = ailment_roll_and_crit(
+                uncapped_stacks, stack_limit, hit_range.crit_chance_pct
+            )
+            hit_avg = hit_range.hit_min + (hit_range.hit_max - hit_range.hit_min) * roll
+            crit_avg = hit_range.crit_min + (hit_range.crit_max - hit_range.crit_min) * roll
+            from_hit = on_hit * (1 - eff_crit / 100.0)
+            from_crit = on_crit * eff_crit / 100.0
+            if from_hit + from_crit > 0:
+                basis_damage = (hit_avg * from_hit + crit_avg * from_crit) / (from_hit + from_crit)
+            else:
+                basis_damage = 0.0
+        else:
+            basis_damage = sum(hit_damage_by_type.get(t, 0.0) for t in rule.basis_types)
         dps_per_stack = basis_damage * rule.hit_fraction
 
         # Bleed's moving/aggravated state is 100% MORE
@@ -176,16 +243,6 @@ class DoTCalculator:
         if enemy.is_shocked:
             dps_per_stack_final *= enemy.shock_multiplier()
 
-        # Duration and expected active stacks. Non-stacking ailments
-        # (limit 1) cap at full uptime once applications x duration >= 1.
-        duration = rule.base_duration * (1.0 + ailment_input.increased_duration / 100.0)
-        applications_per_second = (
-            hits_per_second * max(min(ailment_input.chance_pct, 100.0), 0.0) / 100.0
-        )
-        expected_active_stacks = min(
-            applications_per_second * duration,
-            float(max(ailment_input.stack_limit, 0)),
-        )
         sustained_dps = dps_per_stack_final * expected_active_stacks
 
         return {
@@ -198,7 +255,13 @@ class DoTCalculator:
             "applications_per_second": round(applications_per_second, 3),
             "expected_active_stacks": round(expected_active_stacks, 3),
             "stack_limit": ailment_input.stack_limit,
-            "sustained_dps": round(sustained_dps, 2),
+            "stack_potential": (
+                round(uncapped_stacks / stack_limit, 3) if stack_limit > 0 else 0.0
+            ),
+            "roll_average_pct": round(roll * 100, 2) if roll is not None else None,
+            "effective_crit_chance_pct": (round(eff_crit, 2) if eff_crit is not None else None),
+            # 4 dp: low-chance ailments (buildup-based ignite) sit well below 1 DPS
+            "sustained_dps": round(sustained_dps, 4),
             "multipliers": {
                 "increased": round(increased_mult, 3),
                 "more": round(more_mult, 3),
