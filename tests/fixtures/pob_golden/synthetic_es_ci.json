@@ -1,0 +1,92 @@
+{
+ "dps_inputs": {
+  "e_res": {
+   "Armour": 8063,
+   "ChaosResist": 0,
+   "ColdResist": 50,
+   "ElementalResist": 0,
+   "FireResist": 50,
+   "LightningResist": 50
+  },
+  "extra": {
+   "DpsMultiplier": 1
+  },
+  "skill_pen": {
+   "ChaosPenetration": 0,
+   "ColdPenetration": 0,
+   "ColdPenetrationMinimum": 0,
+   "ElementalPenetration": 0,
+   "ElementalPenetrationMinimum": 0,
+   "FirePenetration": 0,
+   "FirePenetrationMinimum": 0,
+   "LightningPenetration": 0,
+   "LightningPenetrationMinimum": 0
+  },
+  "t_inc": {
+   "ChaosDamageTaken": 0,
+   "ColdDamageTaken": 0,
+   "DamageTaken": 0,
+   "ElementalDamageTaken": 0,
+   "FireDamageTaken": 0,
+   "LightningDamageTaken": 0,
+   "PhysicalDamageTaken": 0
+  },
+  "t_more": {
+   "ChaosDamageTaken": 1,
+   "ColdDamageTaken": 1,
+   "DamageTaken": 1,
+   "ElementalDamageTaken": 1,
+   "FireDamageTaken": 1,
+   "LightningDamageTaken": 1,
+   "PhysicalDamageTaken": 1
+  }
+ },
+ "pob_commit": "601768b",
+ "raw_resmax": {
+  "ChaosResistMax": 75,
+  "ColdResistMax": 75,
+  "ElementalResistMax": 0,
+  "FireResistMax": 75,
+  "LightningResistMax": 75
+ },
+ "stats": {
+  "Armour": 0,
+  "ChaosEnemyPen": 0,
+  "ChaosMaximumHitTaken": null,
+  "ChaosResist": 0,
+  "ChaosResistOverCap": 0,
+  "ChaosResistTotal": 0,
+  "ChaosStoredCombinedAvg": 0,
+  "ColdEnemyPen": 3,
+  "ColdMaximumHitTaken": 477,
+  "ColdResist": -10,
+  "ColdResistOverCap": 0,
+  "ColdResistTotal": -10,
+  "ColdStoredCombinedAvg": 0,
+  "CombinedDPS": 88.367857142857,
+  "CritChance": 9,
+  "CritMultiplier": 2,
+  "EnergyShield": 524,
+  "Evasion": 7,
+  "FireEnemyPen": 3,
+  "FireMaximumHitTaken": 477,
+  "FireResist": -10,
+  "FireResistOverCap": 0,
+  "FireResistTotal": -10,
+  "FireStoredCombinedAvg": 0,
+  "HitChance": 100,
+  "Life": 1,
+  "LightningEnemyPen": 3,
+  "LightningMaximumHitTaken": 438,
+  "LightningResist": -20,
+  "LightningResistOverCap": 0,
+  "LightningResistTotal": -20,
+  "LightningStoredCombinedAvg": 123.715,
+  "PhysicalEnemyPen": 0,
+  "PhysicalMaximumHitTaken": 525,
+  "PhysicalStoredCombinedAvg": 0,
+  "PreEffectiveCritChance": 9,
+  "Speed": 1.4285714285714,
+  "TotalDPS": 88.367857142857
+ }
+}

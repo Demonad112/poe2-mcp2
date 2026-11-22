@@ -72,7 +72,10 @@ DEFENCE_FIELD_SET: Dict[str, Any] = {
     "chaosMaximumHitTaken": ("ChaosMaximumHitTaken", "pct1"),
 }
 DEFENCE_POB_FIELDS: List[str] = sorted({pk for pk, _ in DEFENCE_FIELD_SET.values()})
-POB_COMMIT_PIN = "bb52d6b"  # PoB2 commit the verifier was developed against
+# PoB2 commit the engine is pinned to (full sha: scripts/setup_headless_pob.sh fetches exactly this; goldens
+# in tests/fixtures/pob_golden are recorded against it). Bump together with a golden regeneration.
+POB_COMMIT_PIN_FULL = "601768bd105869618c3d6581b883e5d7aeec91b2"
+POB_COMMIT_PIN = POB_COMMIT_PIN_FULL[:7]
 
 
 def pob_commit() -> str:
