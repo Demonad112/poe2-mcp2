@@ -25,11 +25,14 @@ class BuildScorer:
         Returns:
             Analysis results with scores and recommendations
         """
-        analysis = {
-            "overall_score": 0.0,
+        strengths: List[str] = []
+        weaknesses: List[str] = []
+        overall_score = 0.0
+        analysis: Dict[str, Any] = {
+            "overall_score": overall_score,
             "tier": "Unknown",
-            "strengths": [],
-            "weaknesses": [],
+            "strengths": strengths,
+            "weaknesses": weaknesses,
             "dps": 0,
             "ehp": 0,
             "defense_rating": 0.0,
@@ -42,30 +45,31 @@ class BuildScorer:
             skill_score = await self._score_skills(character_data)
 
             # Weighted overall score
-            analysis["overall_score"] = gear_score * 0.4 + passive_score * 0.4 + skill_score * 0.2
+            overall_score = gear_score * 0.4 + passive_score * 0.4 + skill_score * 0.2
+            analysis["overall_score"] = overall_score
 
             # Determine tier
-            if analysis["overall_score"] >= 0.9:
+            if overall_score >= 0.9:
                 analysis["tier"] = "S"
-            elif analysis["overall_score"] >= 0.75:
+            elif overall_score >= 0.75:
                 analysis["tier"] = "A"
-            elif analysis["overall_score"] >= 0.6:
+            elif overall_score >= 0.6:
                 analysis["tier"] = "B"
-            elif analysis["overall_score"] >= 0.4:
+            elif overall_score >= 0.4:
                 analysis["tier"] = "C"
             else:
                 analysis["tier"] = "D"
 
             # Identify strengths and weaknesses
             if gear_score > 0.7:
-                analysis["strengths"].append("Well-geared character")
+                strengths.append("Well-geared character")
             else:
-                analysis["weaknesses"].append("Gear needs improvement")
+                weaknesses.append("Gear needs improvement")
 
             if passive_score > 0.7:
-                analysis["strengths"].append("Efficient passive tree")
+                strengths.append("Efficient passive tree")
             else:
-                analysis["weaknesses"].append("Passive tree could be optimized")
+                weaknesses.append("Passive tree could be optimized")
 
         except Exception as e:
             logger.error(f"Build analysis failed: {e}")
@@ -91,17 +95,19 @@ class BuildScorer:
         self, builds: List[Dict[str, Any]], metrics: List[str]
     ) -> Dict[str, Any]:
         """Compare multiple builds"""
-        comparison = {"metrics": []}
+        metric_entries: List[Dict[str, Any]] = []
+        comparison: Dict[str, Any] = {"metrics": metric_entries}
 
         for metric in metrics:
-            metric_results = {"name": metric, "results": []}
+            metric_results_list: List[Dict[str, Any]] = []
+            metric_results: Dict[str, Any] = {"name": metric, "results": metric_results_list}
 
             for build in builds:
                 analysis = await self.analyze_build(build)
-                metric_results["results"].append(
+                metric_results_list.append(
                     {"build_name": build.get("name", "Unknown"), "value": analysis.get(metric, 0)}
                 )
 
-            comparison["metrics"].append(metric_results)
+            metric_entries.append(metric_results)
 
         return comparison

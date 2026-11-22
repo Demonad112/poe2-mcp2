@@ -73,7 +73,7 @@ class PoEAPIClient:
 
         # Check cache first
         if self.cache_manager:
-            cached_data = await self.cache_manager.get(cache_key)
+            cached_data: Optional[Dict[str, Any]] = await self.cache_manager.get(cache_key)
             if cached_data:
                 logger.info(f"Cache hit for character {character_name}")
                 return cached_data
@@ -91,7 +91,7 @@ class PoEAPIClient:
             response = await self.client.get(url)
             response.raise_for_status()
 
-            character_data = response.json()
+            character_data: Dict[str, Any] = response.json()
 
             # Cache the result
             if self.cache_manager:
@@ -127,7 +127,7 @@ class PoEAPIClient:
 
         # Check cache
         if self.cache_manager:
-            cached_data = await self.cache_manager.get(cache_key)
+            cached_data: Optional[List[Dict[str, Any]]] = await self.cache_manager.get(cache_key)
             if cached_data:
                 return cached_data
 
@@ -141,7 +141,7 @@ class PoEAPIClient:
             response = await self.client.get(url)
             response.raise_for_status()
 
-            characters = response.json()
+            characters: List[Dict[str, Any]] = response.json()
 
             # Cache the result
             if self.cache_manager:
@@ -164,7 +164,7 @@ class PoEAPIClient:
 
         # Check cache (passive tree data is static, cache for long time)
         if self.cache_manager:
-            cached_data = await self.cache_manager.get(cache_key)
+            cached_data: Optional[Dict[str, Any]] = await self.cache_manager.get(cache_key)
             if cached_data:
                 return cached_data
 
@@ -174,7 +174,7 @@ class PoEAPIClient:
             response = await self.client.get(url)
             response.raise_for_status()
 
-            tree_data = response.json()
+            tree_data: Dict[str, Any] = response.json()
 
             # Cache for 24 hours (passive tree rarely changes)
             if self.cache_manager:
@@ -196,7 +196,7 @@ class PoEAPIClient:
         cache_key = "items_data"
 
         if self.cache_manager:
-            cached_data = await self.cache_manager.get(cache_key)
+            cached_data: Optional[Dict[str, Any]] = await self.cache_manager.get(cache_key)
             if cached_data:
                 return cached_data
 
@@ -205,7 +205,7 @@ class PoEAPIClient:
             response = await self.client.get(url)
             response.raise_for_status()
 
-            items_data = response.json()
+            items_data: Dict[str, Any] = response.json()
 
             # Cache for 24 hours
             if self.cache_manager:

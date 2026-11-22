@@ -258,7 +258,8 @@ class PoeNinjaAPI:
                 async for line in response.aiter_lines():
                     if line.startswith("data:"):
                         try:
-                            return json.loads(line[5:].strip()).get("version")
+                            version: Optional[int] = json.loads(line[5:].strip()).get("version")
+                            return version
                         except (json.JSONDecodeError, AttributeError):
                             continue
         except Exception as e:
@@ -279,7 +280,7 @@ class PoeNinjaAPI:
         """
         cache_key = f"ninja_char_list_{account}"
         if self.cache_manager:
-            cached = await self.cache_manager.get(cache_key)
+            cached: Optional[List[Dict[str, Any]]] = await self.cache_manager.get(cache_key)
             if cached:
                 return cached
 
@@ -346,7 +347,8 @@ class PoeNinjaAPI:
             if response.status_code != 200:
                 logger.warning(f"Model endpoint returned {response.status_code} for {character}")
                 return None
-            return response.json()
+            model: Dict[str, Any] = response.json()
+            return model
         except Exception as e:
             logger.error(f"Model fetch failed for {character}: {e}")
             return None
@@ -376,7 +378,7 @@ class PoeNinjaAPI:
         cache_key = f"ninja_top_builds_{league_slug}_{class_name}_{skill}_{limit}"
 
         if self.cache_manager:
-            cached = await self.cache_manager.get(cache_key)
+            cached: Optional[List[Dict[str, Any]]] = await self.cache_manager.get(cache_key)
             if cached:
                 return cached
 
@@ -645,7 +647,7 @@ class PoeNinjaAPI:
         cache_key = f"ninja_prices_{league}_{item_type}"
 
         if self.cache_manager:
-            cached = await self.cache_manager.get(cache_key)
+            cached: Optional[List[Dict[str, Any]]] = await self.cache_manager.get(cache_key)
             if cached:
                 return cached
 
@@ -659,7 +661,7 @@ class PoeNinjaAPI:
 
             if response.status_code == 200:
                 data = response.json()
-                items = data.get("lines", [])
+                items: List[Dict[str, Any]] = data.get("lines", [])
 
                 if items and self.cache_manager:
                     await self.cache_manager.set(cache_key, items, ttl=3600)
@@ -693,7 +695,7 @@ class PoeNinjaAPI:
         cache_key = f"ninja_pob_{account}_{character}"
 
         if self.cache_manager:
-            cached = await self.cache_manager.get(cache_key)
+            cached: Optional[str] = await self.cache_manager.get(cache_key)
             if cached:
                 logger.info(f"✅ Cache hit for PoB code: {character}")
                 return cached
@@ -714,7 +716,7 @@ class PoeNinjaAPI:
                 return None
 
             char_model = model.get("charModel") or {}
-            pob_code = char_model.get("pathOfBuildingExport")
+            pob_code: Optional[str] = char_model.get("pathOfBuildingExport")
 
             if pob_code:
                 logger.info(f"✅ Got PoB export from charModel for {character}")
