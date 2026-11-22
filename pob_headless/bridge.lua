@@ -1,4 +1,5 @@
 -- pob_headless/bridge.lua
+-- bridge-version: 2
 --
 -- Headless Path of Building 2 bridge for poe2-mcp (MIT, original work).
 -- Runs under LuaJIT with cwd = <PathOfBuilding-PoE2>/src and speaks
@@ -116,14 +117,53 @@ handlers.get_stats = function(p)
   if sk and sk.activeEffect and sk.activeEffect.grantedEffect then
     main.skill = sk.activeEffect.grantedEffect.name
   end
+  local stats = scalars(out, p.fields)
+  -- Per-hand pass outputs (weapon attacks): "MainHand.<Stat>" / "OffHand.<Stat>" read out.MainHand / out.OffHand;
+  -- "Minion.<Stat>" reads the summoned minion's own output table (out.Minion).
+  for _, f in ipairs(type(p.fields) == 'table' and p.fields or {}) do
+    local hand, sub = tostring(f):match('^(%a+)%.(.+)$')
+    if hand and (hand == 'MainHand' or hand == 'OffHand' or hand == 'Minion')
+        and type(out[hand]) == 'table' and type(out[hand][sub]) == 'number' then stats[f] = out[hand][sub] end
+  end
   return {
     ok = true,
     level = build.characterLevel,
     class = build.spec and build.spec.curClassName,
     ascendancy = build.spec and build.spec.curAscendClassName,
     main = main,
-    stats = scalars(out, p.fields),
+    stats = stats,
   }
+end
+
+-- Sum raw modDB entries (pre-cap, pre-derived) by name, e.g. {"FireResistMax","ElementalResistMax"}.
+-- Lets callers derive caps from inputs instead of reading PoB's already-capped output.
+handlers.sum_mod = function(p)
+  require_build()
+  local env = build.calcsTab.mainEnv
+  if not env or not env.modDB then error('no calc env') end
+  local names = p.names
+  if type(names) ~= 'table' or #names == 0 then error('names (array) required') end
+  local kind = p.mod_type or 'BASE'
+  -- db: "mod" (default, player modDB) | "enemy" (enemyDB) | "skill" (main skill's skillModList).
+  -- cfg: "skill" evaluates conditional/tagged mods with the main skill's cfg (what CalcOffence does);
+  -- default nil. db="skill" always uses the skill cfg. mod_type "MORE" returns the product of More().
+  local db, cfg = env.modDB, nil
+  local ms = env.player and env.player.mainSkill
+  if p.db == 'enemy' then
+    db = env.enemyDB
+  elseif p.db == 'skill' then
+    if not (ms and ms.skillModList) then error('no main skill') end
+    db = ms.skillModList
+  end
+  if p.db == 'skill' or p.cfg == 'skill' then
+    -- CalcOffence evaluates weapon attacks with weapon1Cfg (main hand) and everything else with skillCfg.
+    cfg = ms and (ms.weapon1Cfg or ms.skillCfg) or nil
+  end
+  local res = {}
+  for _, n in ipairs(names) do
+    if kind == 'MORE' then res[n] = db:More(cfg, n) else res[n] = db:Sum(kind, cfg, n) end
+  end
+  return { ok = true, sums = res }
 end
 
 -- Set PoB Configuration-tab inputs (e.g. enemyLevel, conditionEnemyShocked).
@@ -174,6 +214,8 @@ end
 -- Per-skill damage table: for every enabled socket group, make it the main group,
 -- recalc and read the offence keys (confirmed against Modules/CalcOffence.lua,
 -- PoB2 commit in headless.py POB_COMMIT). The original main group is restored.
+-- Per-hand-only keys (set in the damage pass, not combined onto global output).
+local HAND_KEYS = { 'AverageHit', 'TotalMin', 'TotalMax', 'AverageDamage', 'CritChance', 'CritMultiplier', 'HitChance', 'TotalDPS' }
 local DMG_TYPES = { 'Physical', 'Lightning', 'Cold', 'Fire', 'Chaos' }
 local SKILL_KEYS = {
   'TotalDPS', 'FullDPS', 'CombinedDPS', 'TotalDotDPS', 'AverageDamage', 'AverageHit', 'TotalMin', 'TotalMax',
@@ -194,6 +236,21 @@ handlers.get_skill_table = function(p)
         local name = sk and sk.activeEffect and sk.activeEffect.grantedEffect and sk.activeEffect.grantedEffect.name
         if name then
           local row = scalars(out, SKILL_KEYS)
+          -- Attacks run per-hand damage passes (docs/calcOffence.md): the damage pass writes
+          -- AverageHit/TotalMin/TotalMax/<Type>HitAverage to output.MainHand/OffHand and
+          -- CalcOffence only combineStat()s a subset onto the global output. Read the hand
+          -- output directly. Single-weapon attacks use MainHand; dual-wield exposes both.
+          local mh, oh = out.MainHand, out.OffHand
+          local hand = (type(mh) == 'table') and mh or nil
+          local dual = hand ~= nil and type(oh) == 'table' and (oh.TotalDPS or oh.AverageHit) ~= nil
+          if hand and not dual then
+            for _, k in ipairs(HAND_KEYS) do
+              if row[k] == nil and type(hand[k]) == 'number' then row[k] = hand[k] end
+            end
+          end
+          if dual then
+            row.per_hand = { MainHand = scalars(mh, HAND_KEYS), OffHand = scalars(oh, HAND_KEYS) }
+          end
           row.index = gi
           row.name = name
           row.label = g.displayLabel or g.label
@@ -201,8 +258,10 @@ handlers.get_skill_table = function(p)
           row.gem_quality = sk.activeEffect.quality
           local split = {}
           for _, t in ipairs(DMG_TYPES) do
+            local src = out
+            if out[t .. 'HitAverage'] == nil and hand and not dual then src = hand end
             split[t] = {
-              hit_average = out[t .. 'HitAverage'] or 0,
+              hit_average = src[t .. 'HitAverage'] or 0,
               combined_average = out[t .. 'StoredCombinedAvg'] or 0,
             }
           end

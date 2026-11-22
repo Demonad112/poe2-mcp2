@@ -57,7 +57,9 @@ class TradeAPI:
     ):
         self.base_url = "https://www.pathofexile.com"
         self.last_search_url: Optional[str] = None  # shareable trade-site link for the last search
-        self.last_error: Optional[str] = None  # surfaced by callers instead of a silent empty result
+        self.last_error: Optional[str] = (
+            None  # surfaced by callers instead of a silent empty result
+        )
         self.cache_manager = cache_manager
         self.rate_limiter = rate_limiter or RateLimiter(
             rate_limit=2
@@ -166,7 +168,9 @@ class TradeAPI:
                 "www.pathofexile.com is reachable from this network."
             )
         elif code == 429:
-            self.last_error = f"[rate-limit] HTTP 429: trade rate limit hit; retry later. Body: {body}"
+            self.last_error = (
+                f"[rate-limit] HTTP 429: trade rate limit hit; retry later. Body: {body}"
+            )
         elif code >= 500:
             self.last_error = f"[unavailable] HTTP {code}: trade API unavailable. Body: {body}"
         else:
@@ -444,7 +448,9 @@ class TradeAPI:
             filters["stats"] = stats
         items = await self.search_items(league, filters, limit=20)
         if needs_es:
-            items = [i for i in items if any("Energy Shield" in m for m in i.get("explicit_mods", []))]
+            items = [
+                i for i in items if any("Energy Shield" in m for m in i.get("explicit_mods", []))
+            ]
         if max_price_chaos:
             items = [
                 i

@@ -14,6 +14,11 @@ if [ ! -x "$VENV/bin/python" ]; then
 fi
 if [ ! -f "$STAMP" ] || [ "$(cat "$STAMP")" != "$WANT" ]; then
   "$VENV/bin/pip" install -q -r "$ROOT/requirements.txt" >&2
+  # test deps (CLAUDE.md test command needs them in a fresh session)
+  "$VENV/bin/pip" install -q pytest pytest-asyncio >&2
   echo "$WANT" > "$STAMP"
+fi
+if ! "$VENV/bin/python" -c "import pytest, pytest_asyncio" >/dev/null 2>&1; then
+  "$VENV/bin/pip" install -q pytest pytest-asyncio >&2
 fi
 echo "$VENV/bin/python"

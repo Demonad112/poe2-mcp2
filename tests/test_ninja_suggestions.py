@@ -24,7 +24,11 @@ def test_split_uses_ninja_order():
     # regression for the app bug: ninja order is [phys, lightning, cold, fire, chaos]
     r = suggest_from_charmodel(_m())
     main = [s for s in r["suggestions"] if s["area"] == "damage"][0]
-    assert "Falling Thunder" in main["finding"] and "lightning 47%" in main["evidence"] and "fire 8%" in main["evidence"]
+    assert (
+        "Falling Thunder" in main["finding"]
+        and "lightning 47%" in main["evidence"]
+        and "fire 8%" in main["evidence"]
+    )
 
 
 def test_markdown_and_empty():

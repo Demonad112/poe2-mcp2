@@ -61,7 +61,7 @@ class DefensiveStats:
     Attributes:
         life: Total life pool
         energy_shield: Total energy shield pool
-        runic_ward: Runic Ward pool (PoE2 0.5 - Verisium Runeforging). NOT yet layered into EHP.
+        runic_ward: Runic Ward pool (PoE2 0.5 - Verisium Runeforging). Layered into the hit pool 1:1 for every damage type (PoB TotalHitPool = life + ES + ward; chaos still halves ES only).
         armor: Armor rating (for physical damage reduction)
         evasion: Evasion rating (for hit avoidance)
         block_chance: Block chance % (capped at 50% in PoE2)
@@ -74,7 +74,7 @@ class DefensiveStats:
 
     life: float
     energy_shield: float = 0.0
-    runic_ward: float = 0.0  # TODO: 0.5 - requires local extraction; not yet layered into EHP calc
+    runic_ward: float = 0.0  # layered into the raw HP pool (see _calculate_raw_hp)
     armor: float = 0.0
     evasion: float = 0.0
     block_chance: float = 0.0
@@ -83,6 +83,11 @@ class DefensiveStats:
     lightning_res: float = 0.0
     chaos_res: float = 0.0
     phys_taken_as_elemental: float = 0.0
+    # PoB `<Elem>ResistMax` (default 75, hard cap 90). Lets 80%-max-res builds be modelled correctly.
+    fire_res_max: float = 75.0
+    cold_res_max: float = 75.0
+    lightning_res_max: float = 75.0
+    chaos_res_max: float = 75.0
 
     def __post_init__(self) -> None:
         """Validate defensive stats."""
@@ -109,6 +114,12 @@ class ThreatProfile:
 
     expected_hit_size: float = 1000.0  # Default: moderate hit
     attacker_accuracy: float = 2000.0  # Default: moderate accuracy
+    # Enemy resistance penetration % per type (PoB config `enemy<Type>Pen`). Applied only when the
+    # player's resistance is positive: mult = 1 - max(res - pen, 0)/100 (CalcDefence.lua ~2582).
+    enemy_fire_pen: float = 0.0
+    enemy_cold_pen: float = 0.0
+    enemy_lightning_pen: float = 0.0
+    enemy_chaos_pen: float = 0.0
 
 
 @dataclass
@@ -229,7 +240,7 @@ class EHPCalculator:
             armor_dr = self._calculate_armor_dr(stats, threat)
 
         # Step 5: Calculate resistance DR
-        resistance_dr = self._calculate_resistance_dr(stats, damage_type)
+        resistance_dr = self._calculate_resistance_dr(stats, damage_type, threat)
 
         # Step 6: Layer all defenses multiplicatively
         # Formula: Total_Mitigation = 1 - (1 - evade) × (1 - block) × (1 - armor) × (1 - res)
@@ -796,9 +807,9 @@ class EHPCalculator:
         if damage_type == DamageType.CHAOS:
             # PoE2: Chaos removes ES at 2× rate
             effective_es = stats.energy_shield / 2.0
-            return stats.life + effective_es
+            return stats.life + effective_es + stats.runic_ward
         else:
-            return stats.life + stats.energy_shield
+            return stats.life + stats.energy_shield + stats.runic_ward
 
     def _calculate_evasion_mitigation(self, stats: DefensiveStats, threat: ThreatProfile) -> float:
         """Calculate mitigation from evasion (chance to avoid hit)."""
@@ -828,12 +839,32 @@ class EHPCalculator:
 
         return armor_result.damage_reduction_percent / 100.0
 
-    def _calculate_resistance_dr(self, stats: DefensiveStats, damage_type: DamageType) -> float:
-        """Calculate damage reduction from resistance."""
-        resistance_value = self._get_resistance_value(stats, damage_type)
+    def _calculate_resistance_dr(
+        self, stats: DefensiveStats, damage_type: DamageType, threat: Optional[ThreatProfile] = None
+    ) -> float:
+        """Damage reduction from resistance, PoB-style: cap at per-element max (hard 90), then
+        subtract enemy penetration if resistance is positive."""
+        res = self._get_resistance_value(stats, damage_type)
+        max_res, pen = self._resist_cap_and_pen(stats, damage_type, threat)
+        res = min(res, min(max_res, 90.0))
+        res_result = self.defense_calc.calculate_resistance_dr(res, cap=90.0)
+        eff = res_result.resistance_percent
+        if eff > 0:
+            eff = max(eff - pen, 0.0)
+        return eff / 100.0
 
-        res_result = self.defense_calc.calculate_resistance_dr(resistance_value)
-        return res_result.damage_reduction_percent / 100.0
+    @staticmethod
+    def _resist_cap_and_pen(stats, damage_type, threat):
+        key = {
+            DamageType.FIRE: "fire",
+            DamageType.COLD: "cold",
+            DamageType.LIGHTNING: "lightning",
+            DamageType.CHAOS: "chaos",
+        }.get(damage_type)
+        if key is None:
+            return 75.0, 0.0
+        pen = getattr(threat, f"enemy_{key}_pen", 0.0) if threat is not None else 0.0
+        return getattr(stats, f"{key}_res_max"), pen
 
     def _get_resistance_value(self, stats: DefensiveStats, damage_type: DamageType) -> float:
         """Get resistance value for a specific damage type."""

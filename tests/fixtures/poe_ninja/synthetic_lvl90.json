@@ -15,11 +15,11 @@
     "coldResistance": 75,
     "lightningResistance": 75,
     "chaosResistance": 0,
-    "effectiveHealthPool": 12060,
-    "physicalMaximumHitTaken": 12060,
-    "fireMaximumHitTaken": 26800,
-    "coldMaximumHitTaken": 26800,
-    "lightningMaximumHitTaken": 26800,
-    "chaosMaximumHitTaken": 6100
+    "effectiveHealthPool": 14188,
+    "physicalMaximumHitTaken": 14188,
+    "fireMaximumHitTaken": 31529,
+    "coldMaximumHitTaken": 31529,
+    "lightningMaximumHitTaken": 31529,
+    "chaosMaximumHitTaken": 7176
   }
 }

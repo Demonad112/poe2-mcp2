@@ -12,6 +12,7 @@ Env: POE2_POB_HOME (cache dir), POE2_POB_SRC (PoB2 ``src`` dir), POE2_LUAJIT (bi
 import base64
 import json
 import os
+import re
 import shutil
 import subprocess
 import threading
@@ -22,6 +23,18 @@ from typing import Any, Dict, List, Optional
 ROOT = Path(__file__).resolve().parent.parent.parent
 BRIDGE = ROOT / "pob_headless" / "bridge.lua"
 HOME = Path(os.environ.get("POE2_POB_HOME", Path.home() / ".cache" / "poe2-mcp"))
+
+
+def pob_src_dir() -> Path:
+    """PoB2 ``src`` dir. Order: $POE2_POB_SRC, a sibling ``../PathOfBuilding-PoE2`` checkout
+    (the user's fork, kept current), then the cache clone made by setup_headless_pob.sh."""
+    env = os.environ.get("POE2_POB_SRC")
+    if env:
+        return Path(env)
+    sibling = ROOT.parent / "PathOfBuilding-PoE2" / "src"
+    if (sibling / "HeadlessWrapper.lua").is_file():
+        return sibling
+    return HOME / "PathOfBuilding-PoE2" / "src"
 
 
 # ninja defensiveStats key -> (PoB output key, comparison kind). Kinds are defined in
@@ -60,15 +73,83 @@ DEFENCE_FIELD_SET: Dict[str, Any] = {
     "chaosMaximumHitTaken": ("ChaosMaximumHitTaken", "pct1"),
 }
 DEFENCE_POB_FIELDS: List[str] = sorted({pk for pk, _ in DEFENCE_FIELD_SET.values()})
-POB_COMMIT_PIN = "bb52d6b"  # PoB2 commit the verifier was developed against
+# PoB2 commit the engine is pinned to (full sha: scripts/setup_headless_pob.sh fetches exactly this; goldens
+# in tests/fixtures/pob_golden are recorded against it). Bump together with a golden regeneration.
+POB_COMMIT_PIN_FULL = "601768bd105869618c3d6581b883e5d7aeec91b2"
+POB_COMMIT_PIN = POB_COMMIT_PIN_FULL[:7]
+
+
+def bridge_version() -> str:
+    """Bridge protocol version, read from the ``-- bridge-version: N`` header of pob_headless/bridge.lua.
+    Bump it in bridge.lua when handler semantics change; it is reported by headless_pob_status and is
+    part of every cached result's key (src/pob/cache.py)."""
+    try:
+        with open(BRIDGE, encoding="utf-8") as f:
+            for _ in range(10):
+                m = re.match(r"--\s*bridge-version:\s*(\S+)", f.readline())
+                if m:
+                    return m.group(1)
+    except OSError:
+        pass
+    return "unknown"
+
+
+# First-class what-if args -> PoB Configuration-tab inputs. kind: int | bool | charges.
+WHATIF_ARGS: Dict[str, str] = {
+    "enemy_level": "enemyLevel (int; PoB caps normal enemies/bosses at 85)",
+    "enemy_shocked": "conditionEnemyShocked (bool)",
+    "shock_effect": "conditionShockEffect (int %; implies enemy_shocked)",
+    "fire_exposure": "conditionEnemyFireExposure (bool; -20% fire res)",
+    "cold_exposure": "conditionEnemyColdExposure (bool; -20% cold res)",
+    "lightning_exposure": "conditionEnemyLightningExposure (bool; -20% lightning res)",
+    "power_charges": "usePowerCharges + overridePowerCharges (int; 0 turns them off)",
+    "frenzy_charges": "useFrenzyCharges + overrideFrenzyCharges (int; 0 turns them off)",
+    "endurance_charges": "useEnduranceCharges + overrideEnduranceCharges (int; 0 turns them off)",
+}
+
+
+def build_config(args: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Merge the documented what-if args into the raw ``config`` dict (explicit raw keys win).
+    Returns None when nothing is set."""
+    cfg: Dict[str, Any] = {}
+    if args.get("enemy_level") is not None:
+        cfg["enemyLevel"] = int(args["enemy_level"])
+    if args.get("enemy_shocked") is not None:
+        cfg["conditionEnemyShocked"] = bool(args["enemy_shocked"])
+    if args.get("shock_effect") is not None:
+        cfg["conditionEnemyShocked"] = True
+        cfg["conditionShockEffect"] = int(args["shock_effect"])
+    for arg, key in (
+        ("fire_exposure", "conditionEnemyFireExposure"),
+        ("cold_exposure", "conditionEnemyColdExposure"),
+        ("lightning_exposure", "conditionEnemyLightningExposure"),
+    ):
+        if args.get(arg) is not None:
+            cfg[key] = bool(args[arg])
+    for arg, name in (
+        ("power_charges", "Power"),
+        ("frenzy_charges", "Frenzy"),
+        ("endurance_charges", "Endurance"),
+    ):
+        n = args.get(arg)
+        if n is not None:
+            cfg[f"use{name}Charges"] = int(n) > 0
+            if int(n) > 0:
+                cfg[f"override{name}Charges"] = int(n)
+    cfg.update(args.get("config") or {})
+    return cfg or None
 
 
 def pob_commit() -> str:
     """Short git hash of the PathOfBuilding-PoE2 checkout in use (falls back to the pin)."""
-    src = Path(os.environ.get("POE2_POB_SRC", HOME / "PathOfBuilding-PoE2" / "src"))
+    src = pob_src_dir()
     try:
-        r = subprocess.run(["git", "-C", str(src), "rev-parse", "--short=7", "HEAD"],
-                           capture_output=True, text=True, timeout=10)
+        r = subprocess.run(
+            ["git", "-C", str(src), "rev-parse", "--short=7", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
         if r.returncode == 0 and r.stdout.strip():
             return r.stdout.strip()
     except Exception:
@@ -102,9 +183,13 @@ def luajit_supports_compound_assign(luajit: Optional[str]) -> bool:
 
 
 def find_environment() -> Dict[str, Any]:
-    src = Path(os.environ.get("POE2_POB_SRC", HOME / "PathOfBuilding-PoE2" / "src"))
+    src = pob_src_dir()
     pinned = HOME / "LuaJIT" / "src" / "luajit"  # built by scripts/setup_headless_pob.sh
-    luajit = os.environ.get("POE2_LUAJIT") or (str(pinned) if pinned.is_file() else None) or shutil.which("luajit")
+    luajit = (
+        os.environ.get("POE2_LUAJIT")
+        or (str(pinned) if pinned.is_file() else None)
+        or shutil.which("luajit")
+    )
     utf8 = HOME / "lua_modules" / "lib" / "lua" / "5.1" / "lua-utf8.so"
     return {
         "luajit": luajit,
@@ -112,6 +197,8 @@ def find_environment() -> Dict[str, Any]:
         "pob_src_present": (src / "HeadlessWrapper.lua").is_file(),
         "lua_utf8": str(utf8) if utf8.is_file() else None,
         "bridge": str(BRIDGE),
+        "bridge_version": bridge_version(),
+        "pob_commit": pob_commit(),
         "luajit_compound_assign": luajit_supports_compound_assign(luajit),
         "ready": bool(
             luajit
@@ -205,8 +292,12 @@ class HeadlessPoB:
         self.close()
 
 
-def calc(code_or_xml: str, config: Optional[Dict[str, Any]] = None,
-         fields: Optional[List[str]] = None, level: Optional[int] = None) -> Dict[str, Any]:
+def calc(
+    code_or_xml: str,
+    config: Optional[Dict[str, Any]] = None,
+    fields: Optional[List[str]] = None,
+    level: Optional[int] = None,
+) -> Dict[str, Any]:
     """One-shot: load a build, optionally set level/config overrides, return PoB stats."""
     with HeadlessPoB() as pob:
         pob.load_build(code_or_xml)

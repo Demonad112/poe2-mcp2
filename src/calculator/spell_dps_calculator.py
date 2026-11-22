@@ -27,6 +27,8 @@ class SpellStats:
     base_crit_chance: float = 0.0  # 0-100%
     base_cast_time: float = 1.0  # seconds
     damage_types: List[str] = None  # ['fire', 'cold', 'lightning', etc.]
+    is_channelled: bool = False  # PoB: Channel skills are exempt from the server-tick speed cap
+    repeats: int = 1  # PoB: server-tick cap is multiplied by the skill's Repeats
 
     def __post_init__(self) -> None:
         if self.damage_types is None:
@@ -54,7 +56,10 @@ class CharacterModifiers:
 
     # Critical stats
     added_crit_bonus: float = 100.0  # PoE2 base: +100%
-    increased_crit_chance: float = 0.0
+    increased_crit_chance: float = 0.0  # % increased (multiplies base crit; PoB semantics)
+    more_crit_chance: float = 0.0  # % more crit chance
+    added_crit_chance: float = 0.0  # flat added to base before scaling
+    more_crit_damage: float = 0.0  # % more crit damage bonus (PoB: extraDamage = base*inc*more)
 
     # Archmage
     maximum_mana: float = 0.0
@@ -86,7 +91,24 @@ class EnemyStats:
     lightning_penetration: float = 0.0
 
     # Modifiers
-    is_shocked: bool = False  # 20% more damage taken
+    is_shocked: bool = False
+    shock_magnitude: float = 20.0  # PoB BaseShockMagnitude (Data/Misc.lua), clamped 20..100
+    # %increased damage taken (curses, etc.). PoB adds shock to this as one DamageTaken INC pool.
+    increased_damage_taken: float = 0.0
+
+    def shock_multiplier(self) -> float:
+        """Shock-only multiplier: 1 + magnitude/100; magnitude 20 (Base) .. 100 (Max)."""
+        return 1.0 + max(20.0, min(100.0, self.shock_magnitude)) / 100.0
+
+    def damage_taken_multiplier(self) -> float:
+        """PoB CalcPerform: shock is an INC to DamageTaken, additive with other increased damage
+        taken: 1 + (inc_taken + shock_magnitude)/100. Equals 1.0 with no shock and 0 inc taken."""
+        shock = max(20.0, min(100.0, self.shock_magnitude)) if self.is_shocked else 0.0
+        return max(0.0, 1.0 + (self.increased_damage_taken + shock) / 100.0)
+
+
+# PoB data.misc.ServerTickRate = 1 / 0.033 (Modules/Data.lua)
+SERVER_TICK_RATE = 1 / 0.033
 
 
 class SpellDPSCalculator:
@@ -170,11 +192,23 @@ class SpellDPSCalculator:
             damage_after_more = damage_after_increased * more_multiplier
 
             # Step 6: Calculate expected damage with crits
+            # PoB: (base + added) * (1 + inc/100) * (1 + more/100), clamped to [0, 100]
             crit_chance = (
-                min(spell.base_crit_chance + char_mods.increased_crit_chance, 100.0) / 100.0
+                max(
+                    min(
+                        (spell.base_crit_chance + char_mods.added_crit_chance)
+                        * (1.0 + char_mods.increased_crit_chance / 100.0)
+                        * (1.0 + char_mods.more_crit_chance / 100.0),
+                        100.0,
+                    ),
+                    0.0,
+                )
+                / 100.0
             )
             crit_multiplier = self._calculate_crit_multiplier(
-                char_mods.added_crit_bonus, char_mods.increased_crit_damage
+                char_mods.added_crit_bonus,
+                char_mods.increased_crit_damage,
+                char_mods.more_crit_damage,
             )
 
             non_crit_damage = damage_after_more * (1.0 - crit_chance)
@@ -187,12 +221,14 @@ class SpellDPSCalculator:
             )
 
             # Step 8: Apply Shock if applicable
-            if enemy.is_shocked:
-                damage_after_resistance *= 1.2  # 20% more damage
+            damage_after_resistance *= enemy.damage_taken_multiplier()
 
             # Step 9: Calculate DPS (damage × casts per second)
             cast_speed = self._calculate_cast_speed(
-                spell.base_cast_time, char_mods.increased_cast_speed
+                spell.base_cast_time,
+                char_mods.increased_cast_speed,
+                is_channelled=spell.is_channelled,
+                repeats=spell.repeats,
             )
             dps = damage_after_resistance * cast_speed
 
@@ -308,7 +344,9 @@ class SpellDPSCalculator:
             total *= 1.0 + more_percent / 100.0
         return total
 
-    def _calculate_crit_multiplier(self, added_crit_bonus: float, increased_crit: float) -> float:
+    def _calculate_crit_multiplier(
+        self, added_crit_bonus: float, increased_crit: float, more_crit: float = 0.0
+    ) -> float:
         """Calculate critical strike damage multiplier using PoE2 system.
 
         In PoE2, critical strikes have a base +100% damage bonus (200% total).
@@ -322,7 +360,7 @@ class SpellDPSCalculator:
             Total critical strike damage multiplier
 
         Formula:
-            Crit Multiplier = 1 + (Added Bonus / 100) × (1 + Increased / 100)
+            Crit Multiplier = 1 + (Added Bonus / 100) × (1 + Increased / 100) × (1 + More / 100)
 
         Examples:
             >>> calc = SpellDPSCalculator()
@@ -335,7 +373,7 @@ class SpellDPSCalculator:
         total_bonus = added_crit_bonus / 100.0  # Convert % to decimal
         increased_mult = 1.0 + (increased_crit / 100.0)
 
-        return 1.0 + (total_bonus * increased_mult)
+        return 1.0 + (total_bonus * increased_mult * (1.0 + more_crit / 100.0))
 
     def _apply_resistances(
         self, damage: float, damage_types: List[str], enemy: EnemyStats
@@ -387,18 +425,28 @@ class SpellDPSCalculator:
 
         base_res, exposure, penetration = resistance_map[primary_type]
 
-        # Step 1: Apply exposure (can go negative)
-        res_after_exposure = base_res - exposure
+        # Step 1: Apply exposure (can go negative), clamp to PoB's [-200, 90]
+        res_after_exposure = max(min(base_res - exposure, 90.0), -200.0)
 
-        # Step 2: Apply penetration (cannot go below 0%)
-        effective_resistance = max(res_after_exposure - penetration, 0.0)
+        # Step 2: Penetration only reduces positive resistance (PoB CalcOffence: negative res
+        # is NOT floored at 0 and is not made worse by pen)
+        if res_after_exposure > 0:
+            effective_resistance = max(res_after_exposure - penetration, 0.0)
+        else:
+            effective_resistance = res_after_exposure
 
         # Calculate damage multiplier
         damage_multiplier = 1.0 - (effective_resistance / 100.0)
 
         return damage * damage_multiplier
 
-    def _calculate_cast_speed(self, base_cast_time: float, increased_cast_speed: float) -> float:
+    def _calculate_cast_speed(
+        self,
+        base_cast_time: float,
+        increased_cast_speed: float,
+        is_channelled: bool = False,
+        repeats: float = 1,
+    ) -> float:
         """Calculate casts per second from base cast time and modifiers.
 
         Applies increased cast speed modifiers to reduce the actual cast time,
@@ -424,7 +472,10 @@ class SpellDPSCalculator:
         """
         cast_speed_multiplier = 1.0 + (increased_cast_speed / 100.0)
         actual_cast_time = base_cast_time / cast_speed_multiplier
-        return 1.0 / actual_cast_time
+        speed = 1.0 / actual_cast_time
+        if is_channelled:
+            return speed  # CalcOffence.lua:3016: Channel skills are not tick-capped
+        return min(speed, SERVER_TICK_RATE * max(1, repeats or 1))  # cap = tick rate * Repeats
 
     def get_spell_by_name(self, spell_name: str) -> Optional[SpellStats]:
         """Retrieve spell statistics from the spell database.

@@ -21,9 +21,11 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from src.calculator.dot_calculator import (
     AILMENT_RULES,
+    AilmentHitRange,
     AilmentInput,
     DoTCalculator,
     SkillDoTInput,
+    build_ailment_hit_range,
     split_expected_hit_by_type,
 )
 from src.calculator.spell_dps_calculator import EnemyStats
@@ -385,3 +387,111 @@ async def test_handler_without_dot_block_unchanged():
     text = result[0].text
     assert "Damage over Time" not in text
     assert "Total DPS" in text
+
+
+# --- PoB strongest-instance weighting (CalcOffence.lua) --------------------
+# Values pinned from the headless engine on tests/fixtures/builds fixtures:
+# synthetic_hit_dot_ignite_fireball (IgniteDPS 71.4357) and
+# synthetic_spell_fireball (IgniteDPS 0.386025, chance on crit != on hit).
+
+
+def test_ignite_hit_range_overapplied_matches_pob():
+    r = DoTCalculator().calculate_ailment_dot(
+        AilmentInput(ailment="ignite", chance_pct=100),
+        {},
+        0.8333333333333,
+        EnemyStats(fire_resistance=50),
+        hit_range=AilmentHitRange(403, 605, 926.9, 1391.5, crit_chance_pct=7),
+    )
+    assert r["stack_potential"] == pytest.approx(3.333, abs=1e-3)
+    assert r["roll_average_pct"] == pytest.approx(76.92, abs=0.01)
+    assert r["sustained_dps"] == pytest.approx(71.4357, rel=1e-4)
+
+
+def test_ignite_hit_range_crit_chance_differs_matches_pob():
+    r = DoTCalculator().calculate_ailment_dot(
+        AilmentInput(ailment="ignite", chance_pct=0.14136852586848),
+        {},
+        1.0416666666667,
+        EnemyStats(fire_resistance=50),
+        hit_range=AilmentHitRange(
+            403, 605, 926.9, 1391.5, crit_chance_pct=7, chance_on_crit_pct=0.3251476094975
+        ),
+    )
+    assert r["roll_average_pct"] == 50.0
+    assert r["sustained_dps"] == pytest.approx(0.386025, rel=1e-3)
+
+
+def test_build_hit_range_feeds_pob_ignite():
+    """Spell pipeline -> hit range -> same 71.4357 PoB pins as above."""
+    hr = build_ailment_hit_range(
+        "ignite",
+        403,
+        605,
+        "fire",
+        {},
+        1.0,
+        after_more=504,
+        crit_multiplier=2.3,
+        crit_chance_pct=7,
+    )
+    assert (hr.hit_min, hr.hit_max) == pytest.approx((403, 605))
+    assert (hr.crit_min, hr.crit_max) == pytest.approx((926.9, 1391.5))
+    r = DoTCalculator().calculate_ailment_dot(
+        AilmentInput(ailment="ignite"),
+        {},
+        0.8333333333333,
+        EnemyStats(fire_resistance=50),
+        hit_range=hr,
+    )
+    assert r["sustained_dps"] == pytest.approx(71.4357, rel=1e-4)
+
+
+def test_build_hit_range_basis_and_added_damage():
+    # Fire spell + added phys: poison basis sees only the fixed added phys.
+    hr = build_ailment_hit_range(
+        "poison",
+        100,
+        200,
+        "fire",
+        {"physical": 50, "fire": 0},
+        0.5,
+        after_more=350,
+        crit_multiplier=2.0,
+        crit_chance_pct=0,
+    )
+    scale = 350 / (150 + 25)
+    assert hr.hit_min == pytest.approx(25 * scale)
+    assert hr.hit_max == pytest.approx(25 * scale)
+    assert hr.crit_min == hr.hit_min  # no crit chance -> no crit scaling
+    assert build_ailment_hit_range("bleed", 100, 200, "fire", {}, 1.0, 300, 2.0, 5) is None
+    assert build_ailment_hit_range("nope", 100, 200, "fire", {}, 1.0, 300, 2.0, 5) is None
+
+
+@pytest.mark.asyncio
+async def test_handler_dot_uses_hit_range_unless_overridden():
+    from src.mcp_server import PoE2BuildOptimizerMCP
+
+    server = PoE2BuildOptimizerMCP()
+    spell = {
+        "name": "Range Spell",
+        "base_damage_min": 100,
+        "base_damage_max": 200,
+        "base_cast_time": 0.25,
+        "damage_types": ["fire"],
+    }
+    ign = {"ailments": [{"type": "ignite", "chance": 100}]}
+    text = (await server._handle_calculate_character_dps({"spell_stats": spell, "dot": ign}))[
+        0
+    ].text
+    assert "strongest-instance" in text
+    off = dict(ign, use_hit_range=False)
+    text = (await server._handle_calculate_character_dps({"spell_stats": spell, "dot": off}))[
+        0
+    ].text
+    assert "strongest-instance" not in text
+    ovr = dict(ign, hit_damage_by_type={"fire": 150})
+    text = (await server._handle_calculate_character_dps({"spell_stats": spell, "dot": ovr}))[
+        0
+    ].text
+    assert "strongest-instance" not in text

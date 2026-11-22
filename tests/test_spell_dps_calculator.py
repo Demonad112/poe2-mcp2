@@ -228,22 +228,18 @@ def test_apply_resistances_uses_first_damage_type_as_primary(calc):
 
 
 def test_apply_resistances_penetration_cannot_make_negative(calc):
-    """If exposure + penetration would push effective res below 0, clamp at 0
-    (penetration can't ADD damage on top of negative-res enemies)."""
+    """PoB: penetration only reduces POSITIVE resistance, so it neither adds nor removes damage on
+    an enemy already negative from exposure (updated: old test floored at 0, contradicting PoB)."""
     enemy = EnemyStats(fire_resistance=0, fire_exposure=20, fire_penetration=50)
-    # 0 - 20 - 50 = -70 → clamp to 0 → full damage
-    assert calc._apply_resistances(100, ["fire"], enemy) == 100.0
+    # 0 - 20 = -20 (pen ignored) → 120% damage
+    assert calc._apply_resistances(100, ["fire"], enemy) == pytest.approx(120.0)
 
 
 def test_apply_resistances_exposure_alone_can_go_negative(calc):
-    """Negative effective resistance (from exposure WITHOUT pen) means MORE
-    damage taken — exposure on a 0-res enemy goes negative pre-pen-clamp.
-    But with no penetration applied, the max() floor still applies.
-    Wait — re-reading: effective_resistance = max(base - exposure - pen, 0).
-    So even pure exposure on a 0-res enemy clamps to 0. Verify."""
+    """Exposure on a 0-res enemy goes negative and is NOT floored (PoB ResistFloor -200):
+    res 0, exposure 20 → 120% damage (verified vs headless PoB, audit harness)."""
     enemy = EnemyStats(fire_resistance=0, fire_exposure=20)
-    # 0 - 20 - 0 = -20 → clamp to 0 → full damage
-    assert calc._apply_resistances(100, ["fire"], enemy) == 100.0
+    assert calc._apply_resistances(100, ["fire"], enemy) == pytest.approx(120.0)
 
 
 def test_apply_resistances_handles_each_element(calc):
@@ -456,3 +452,33 @@ def test_calculate_dps_crit_chance_capped_at_100(calc):
     cm = CharacterModifiers(increased_crit_chance=200.0)  # 50 + 200 = 250 → capped to 100
     result = calc.calculate_dps(spell, cm)
     assert result["crit_chance"] == 100.0
+
+
+# --- PoB parity: tick cap, shock-as-DamageTaken, evade rounding (review PRs #16-18) ---
+from src.calculator.spell_dps_calculator import SERVER_TICK_RATE as _TICK
+from src.calculator.spell_dps_calculator import EnemyStats as _ES
+from src.calculator.spell_dps_calculator import SpellDPSCalculator as _Calc
+
+
+def test_tick_cap_applies_to_normal_spell():
+    assert _Calc()._calculate_cast_speed(0.01, 0) == _TICK
+
+
+def test_tick_cap_skipped_for_channelled():
+    assert _Calc()._calculate_cast_speed(0.01, 0, is_channelled=True) == 100.0
+
+
+def test_tick_cap_scales_with_repeats():
+    assert abs(_Calc()._calculate_cast_speed(0.01, 0, repeats=3) - _TICK * 3) < 1e-9
+
+
+def test_shock_default_identical_when_no_damage_taken():
+    e = _ES(is_shocked=True)
+    assert e.shock_multiplier() == 1.2 and e.damage_taken_multiplier() == 1.2
+    assert _ES().damage_taken_multiplier() == 1.0
+
+
+def test_shock_additive_with_increased_damage_taken():
+    e = _ES(is_shocked=True, shock_magnitude=30, increased_damage_taken=20)
+    assert abs(e.damage_taken_multiplier() - 1.5) < 1e-9  # 1 + (20+30)/100, not 1.2*1.3
+    assert abs(_ES(increased_damage_taken=10).damage_taken_multiplier() - 1.1) < 1e-9

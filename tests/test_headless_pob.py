@@ -1,4 +1,5 @@
 """Headless PoB2 engine tests. Skipped unless scripts/setup_headless_pob.sh has been run."""
+
 import pytest
 
 from src.pob import headless
