@@ -320,7 +320,7 @@ class PoE2DataScraper:
                             r"passiveSkillTree\s*=\s*({.*?});", script.string, re.DOTALL
                         )
                         if json_match:
-                            tree_data = json.loads(json_match.group(1))
+                            tree_data: Dict[str, Any] = json.loads(json_match.group(1))
                             logger.info("Successfully extracted passive tree data")
                             return tree_data
                     except json.JSONDecodeError:

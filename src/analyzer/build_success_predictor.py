@@ -591,7 +591,7 @@ if __name__ == "__main__":
     print(f"SUCCESS PROBABILITY: {result.success_probability:.1f}%")
     print(f"CONFIDENCE: {result.confidence}")
     print(f"ESTIMATED INVESTMENT: {result.estimated_investment} chaos")
-    print(f"TIME TO FARM: {result.estimated_time_to_farm:.1f} hours")
+    print(f"TIME TO VIABLE: {result.time_to_viable:.1f} hours")
     print()
 
     if result.strengths:

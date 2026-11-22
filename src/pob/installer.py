@@ -457,7 +457,7 @@ def get_bridge_status(
     try:
         from .client import PoBClient
     except ImportError:  # pragma: no cover - direct execution fallback
-        from src.pob.client import PoBClient  # type: ignore
+        from src.pob.client import PoBClient
 
     result["bridge_port"] = None
     try:

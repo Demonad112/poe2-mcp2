@@ -114,8 +114,8 @@ class AscendancyResolver:
             data_dir = Path(__file__).parent.parent.parent / "data"
 
         self.data_dir = Path(data_dir)
-        self._all_ascendancies: Dict = {}
-        self._druid_detailed: Dict = {}
+        self._all_ascendancies: Dict[str, Any] = {}
+        self._druid_detailed: Dict[str, Any] = {}
         self._nodes_by_name: Dict[str, AscendancyNode] = {}
         self._nodes_by_id: Dict[str, AscendancyNode] = {}
         self._loaded = False
@@ -292,7 +292,7 @@ class AscendancyResolver:
 
         logger.info(f"Indexed {len(self._nodes_by_id)} ascendancy nodes")
 
-    def get_ascendancy_info(self, ascendancy_name: str) -> Optional[Dict]:
+    def get_ascendancy_info(self, ascendancy_name: str) -> Optional[Dict[str, Any]]:
         """
         Get information about an ascendancy class.
 
@@ -305,12 +305,16 @@ class AscendancyResolver:
         self._ensure_loaded()
 
         # Check detailed Druid data first
-        if ascendancy_name in self._druid_detailed.get("ascendancies", {}):
-            return self._druid_detailed["ascendancies"][ascendancy_name]
+        druid: Dict[str, Any] = self._druid_detailed.get("ascendancies", {})
+        if ascendancy_name in druid:
+            info: Dict[str, Any] = druid[ascendancy_name]
+            return info
 
         # Check all_ascendancies
-        if ascendancy_name in self._all_ascendancies.get("ascendancies", {}):
-            return self._all_ascendancies["ascendancies"][ascendancy_name]
+        all_asc: Dict[str, Any] = self._all_ascendancies.get("ascendancies", {})
+        if ascendancy_name in all_asc:
+            info = all_asc[ascendancy_name]
+            return info
 
         return None
 

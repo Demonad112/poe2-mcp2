@@ -285,7 +285,7 @@ class ArchetypeClassifier:
         char = character_data
 
         # Calculate average EHP if provided
-        avg_ehp = 0
+        avg_ehp: float = 0
         if ehp:
             ehp_values = [v for k, v in ehp.items() if k != "summary"]
             avg_ehp = sum(ehp_values) / len(ehp_values) if ehp_values else 0

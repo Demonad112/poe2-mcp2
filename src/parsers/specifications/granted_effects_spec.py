@@ -92,6 +92,8 @@ class GrantedEffectsTables:
         if self._effect_rows is not None:
             return self._effect_rows
         ge = self._ge
+        if ge is None:
+            raise RuntimeError("grantedeffects.datc64 not loaded")
         row_count, row_size, magic_pos = self._geometry(ge)
         out: Dict[str, int] = {}
         for i in range(row_count):
@@ -121,6 +123,8 @@ class GrantedEffectsTables:
         """
         self._ensure_loaded()
         g = self._gepl
+        if g is None:
+            raise RuntimeError("grantedeffectsperlevel.datc64 not loaded")
         row_count, row_size, magic_pos = self._geometry(g)
         var_size = len(g) - magic_pos
         out: Dict[int, Dict[int, int]] = {}
