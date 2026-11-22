@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Differential audit: src/calculator Python formulas vs the headless PoB2 engine, multi-build.
 
-Usage: python scripts/audit_python_vs_headless.py [--refresh] [build.json ...]
+Usage: python scripts/audit_python_vs_headless.py [--refresh] [--write-goldens] [build.json ...]
 Builds: charModel JSON (pathOfBuildingExport) or tests/fixtures/builds/*.json ({"pob_xml": ...}).
 Default: the Yykiuy charModel fixture + every tests/fixtures/builds/*.json. PoB = ground truth.
 One engine session, results cached under .cache/pob (--refresh to bypass; a full cache hit never
@@ -20,16 +20,25 @@ from src.calculator.defense_calculator import DefenseCalculator, DefenseConstant
 from src.calculator.ehp_calculator import EHPCalculator, DefensiveStats, ThreatProfile, DamageType  # noqa: E402
 from src.calculator.spell_dps_calculator import SpellDPSCalculator, SpellStats, CharacterModifiers, EnemyStats  # noqa: E402
 
+ENEMY_PHYS_DR_CAP = 75.0  # Data/Misc.lua monsterConstants["maximum_physical_damage_reduction_%"]
+GOLD_DIR = ROOT / "tests/fixtures/pob_golden"
 ELEM = ("Fire", "Cold", "Lightning", "Chaos")
 FIELDS = ["FireResistTotal", "ColdResistTotal", "LightningResistTotal", "ChaosResistTotal",
           "FireResistOverCap", "ColdResistOverCap", "LightningResistOverCap", "ChaosResistOverCap",
           "FireEnemyPen", "ColdEnemyPen", "LightningEnemyPen", "ChaosEnemyPen", "PhysicalEnemyPen",
           "CritMultiplier", "CritChance", "Speed", "HitChance", "TotalDPS", "CombinedDPS", "Life",
           "EnergyShield", "Armour", "Evasion", "FireResist", "ColdResist", "LightningResist", "ChaosResist",
-          "PhysicalStoredCombinedAvg", "FireStoredCombinedAvg", "ColdStoredCombinedAvg",
+          "PhysicalStoredCombinedAvg", "MainHand.PhysicalStoredCritAvg", "MainHand.PhysicalStoredHitAvg", "PreEffectiveCritChance", "FireStoredCombinedAvg", "ColdStoredCombinedAvg",
           "LightningStoredCombinedAvg", "ChaosStoredCombinedAvg",
           "WardOnAllArmourItems", "PhysicalMaximumHitTaken", "FireMaximumHitTaken", "ColdMaximumHitTaken",
           "LightningMaximumHitTaken", "ChaosMaximumHitTaken"]
+
+
+def _prod(it):
+    r = 1.0
+    for x in it:
+        r *= x
+    return r
 
 
 def pob_monster_hit_chance(ev, acc):  # CalcDefence.lua calcs.monsterHitChance
@@ -58,11 +67,52 @@ def python_max_res(raw_sum):
     return DefenseCalculator().calculate_resistance_dr(999, cap).resistance_percent
 
 
+def python_conversion_dps(s, inp):
+    """TotalDPS rebuilt from the engine's pre-mitigation per-type hit pools, mitigated in Python following
+    CalcOffence.lua ~4283-4400: enemy res / DamageTaken read with the skill cfg, penetration from the main
+    skill's skillModList (never {t}EnemyPen, which is enemy-vs-player), x HitChance x Speed x DpsMultiplier
+    x QuantityMultiplier. `inp` = the sum_mod results recorded by audit_build (also stored in the goldens)."""
+    skill_pen, e_res, t_inc, t_more, extra = (inp[k] for k in ("skill_pen", "e_res", "t_inc", "t_more", "extra"))
+    py_hit = 0.0
+    for t in ("Physical",) + ELEM:
+        pool = s.get(f"{t}StoredCombinedAvg", 0) or 0
+        if not pool:
+            continue
+        elem = t in ELEM[:3]
+        names = ["DamageTaken", f"{t}DamageTaken"] + (["ElementalDamageTaken"] if elem else [])
+        taken = (1 + sum(t_inc[n] for n in names) / 100) * _prod(t_more[n] for n in names)
+        if t == "Physical":
+            # Armour DR is nonlinear in hit size, so mitigate the crit and non-crit hits separately
+            # (PoB runs one pass each) instead of the crit-weighted pool.
+            # Enemy physical DR is capped at monsterConstants max_physical_damage_reduction (75), not the player's 90.
+            def dr(armour, raw):
+                r = DefenseCalculator().calculate_armor_dr(armour, raw)
+                r.damage_reduction_percent = min(r.damage_reduction_percent, ENEMY_PHYS_DR_CAP)
+                return r
+            cc = (s.get("PreEffectiveCritChance") or 0) / 100
+            hit_a, crit_a = s.get("MainHand.PhysicalStoredHitAvg") or s.get("PhysicalStoredHitAvg") or 0, s.get("MainHand.PhysicalStoredCritAvg") or s.get("PhysicalStoredCritAvg") or 0
+            if hit_a and crit_a:
+                eff = (crit_a * (1 - dr(e_res["Armour"], crit_a).damage_reduction_percent / 100) * cc
+                       + hit_a * (1 - dr(e_res["Armour"], hit_a).damage_reduction_percent / 100) * (1 - cc))
+                mult = eff / pool if pool else 0
+            else:
+                mult = 1 - dr(e_res["Armour"], pool).damage_reduction_percent / 100
+        else:
+            res = e_res[f"{t}Resist"] + (e_res["ElementalResist"] if elem else 0)
+            pen = skill_pen[f"{t}Penetration"] + (skill_pen["ElementalPenetration"] if elem else 0)
+            min_pen = (skill_pen[f"{t}PenetrationMinimum"] + skill_pen["ElementalPenetrationMinimum"]) if elem else 0
+            res = max(min(res, DefenseConstants.RESISTANCE_HARD_CAP), -200)
+            res = max(res - pen, min_pen) if res > min_pen else res  # calcPenResist
+            mult = 1 - res / 100
+        py_hit += pool * mult * taken
+    qty = max(extra.get("QuantityMultiplier") or 1, 1)
+    return py_hit * s["HitChance"] / 100 * s["Speed"] * (extra.get("DpsMultiplier") or 1) * qty
+
+
 def audit_build(name, xml, eng, base):
     s = eng.stats(xml, fields=FIELDS)
     table = eng.skill_table(xml)
     raw = eng.sum_mod(xml, [f"{e}ResistMax" for e in ELEM] + ["ElementalResistMax"])
-    pen_raw = eng.sum_mod(xml, [f"{e}Penetration" for e in ELEM] + ["ElementalPenetration"])
     enemy = eng.sum_mod(xml, ["FireResist", "ColdResist", "LightningResist", "ChaosResist", "Armour"], db="enemy")
     rows = []
     # max res: python from raw inputs vs engine ResistTotal-OverCap (only valid when over cap)
@@ -89,22 +139,22 @@ def audit_build(name, xml, eng, base):
         r = EHPCalculator().calculate_ehp(ds, dt, ThreatProfile(
             expected_hit_size=5000, attacker_accuracy=acc, enemy_fire_pen=s["FireEnemyPen"],
             enemy_cold_pen=s["ColdEnemyPen"], enemy_lightning_pen=s["LightningEnemyPen"]))
-        rows.append((f"{k} max hit", s[f"{k}MaximumHitTaken"], r.effective_hp))
-    # conversion-chain total DPS: python mitigation of engine-read per-type hit pools
-    py_hit = 0.0
-    for t in ("Physical",) + ELEM[:3] + ("Chaos",):
-        pool = s.get(f"{t}StoredCombinedAvg", 0) or 0
-        if not pool:
+        if s.get(f"{k}MaximumHitTaken") is None:  # engine omits it when immune (e.g. Chaos Inoculation)
             continue
-        if t == "Physical":
-            mult = 1 - DefenseCalculator().calculate_armor_dr(enemy["Armour"], pool).damage_reduction_percent / 100
-        else:
-            pen = s.get(f"{t}EnemyPen", 0) + pen_raw[f"{t}Penetration"] + (pen_raw["ElementalPenetration"] if t != "Chaos" else 0)
-            res = enemy[f"{t}Resist"] - pen
-            mult = DefenseCalculator().calculate_resistance_dr(res, DefenseConstants.RESISTANCE_HARD_CAP).damage_taken_multiplier
-        py_hit += pool * mult
+        rows.append((f"{k} max hit", s[f"{k}MaximumHitTaken"], r.effective_hp))
+    # conversion-chain total DPS: python mitigation of engine-read per-type pre-mitigation hit pools,
+    # following CalcOffence.lua ~4283-4400 (enemy res/DamageTaken read with the skill cfg; penetration
+    # read from the main skill's skillModList; player-vs-enemy only, so no {t}EnemyPen).
+    skill_pen = eng.sum_mod(xml, [f"{e}Penetration" for e in ELEM] + ["ElementalPenetration"]
+                            + [f"{e}PenetrationMinimum" for e in ELEM[:3]] + ["ElementalPenetrationMinimum"], db="skill")
+    e_res = eng.sum_mod(xml, [f"{e}Resist" for e in ELEM] + ["ElementalResist", "Armour"], db="enemy", cfg="skill")
+    taken_names = ["DamageTaken", "ElementalDamageTaken"] + [f"{t}DamageTaken" for t in ("Physical",) + ELEM]
+    t_inc = eng.sum_mod(xml, taken_names, db="enemy", mod_type="INC", cfg="skill")
+    t_more = eng.sum_mod(xml, taken_names, db="enemy", mod_type="MORE", cfg="skill")
+    extra = eng.stats(xml, fields=["DpsMultiplier", "QuantityMultiplier"])
+    dps_inputs = {"skill_pen": skill_pen, "e_res": e_res, "t_inc": t_inc, "t_more": t_more, "extra": extra}
     rows.append(("Conversion-chain TotalDPS (python mitigation of pools)", s["TotalDPS"],
-                 py_hit * s["HitChance"] / 100 * s["Speed"]))
+                 python_conversion_dps(s, dps_inputs)))
     # damage-type split sanity vs skill table (main = highest TotalDPS)
     main = max(table, key=lambda x: x["TotalDPS"]) if table else None
     cats = []
@@ -114,7 +164,10 @@ def audit_build(name, xml, eng, base):
             cats.append("conversion")
     if any(rmax[e] >= 80 for e in ELEM):
         cats.append("high-max-res")
-    return rows, cats, main["name"] if main else "?"
+    golden = {"pob_commit": headless.pob_commit(), "raw_resmax": raw, "stats": s, "dps_inputs": dps_inputs}
+    if "spell" in name:
+        cats.append("spell")
+    return rows, cats, (main["name"] if main else "?"), golden
 
 
 def shared_rows():
@@ -161,11 +214,14 @@ def fmt(rows):
 def main():
     argv = sys.argv[1:]
     refresh = "--refresh" in argv
-    builds = load_builds([a for a in argv if a != "--refresh"])
+    write_goldens = "--write-goldens" in argv
+    builds = load_builds([a for a in argv if not a.startswith("--")])
     total_bad, all_cats = 0, set()
     with CachedEngine(refresh=refresh) as eng:
         for i, (name, xml) in enumerate(builds):
-            rows, cats, main_skill = audit_build(name, xml, eng, i)
+            rows, cats, main_skill, golden = audit_build(name, xml, eng, i)
+            if write_goldens:
+                (GOLD_DIR / f"{name}.json").write_text(json.dumps(golden, indent=1, sort_keys=True) + "\n")
             if i == 0:
                 rows += shared_rows() + [shock_row(eng, xml)]
             all_cats |= set(cats)

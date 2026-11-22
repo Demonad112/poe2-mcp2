@@ -7,21 +7,33 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 from . import headless
 
 CACHE_DIR = Path(__file__).resolve().parents[2] / ".cache" / "pob"
+BRIDGE_LUA = Path(__file__).resolve().parents[2] / "pob_headless" / "bridge.lua"
+
+
+def bridge_hash() -> str:
+    """Short sha256 of bridge.lua: any bridge change invalidates cached engine results."""
+    try:
+        return hashlib.sha256(BRIDGE_LUA.read_bytes()).hexdigest()[:12]
+    except OSError:
+        return "nobridge"
 
 
 def cache_key(xml: str, action: str = "get_stats", config: Optional[dict] = None,
-              fields: Optional[list] = None, params: Optional[dict] = None, commit: Optional[str] = None) -> str:
+              fields: Optional[list] = None, params: Optional[dict] = None, commit: Optional[str] = None,
+              level: Optional[int] = None) -> str:
     h = hashlib.sha256()
     h.update(hashlib.sha256(xml.encode("utf-8")).digest())
     meta = {"commit": commit or headless.pob_commit(), "action": action,
             "config": sorted((config or {}).items()), "fields": sorted(fields or []),
-            "params": sorted((params or {}).items(), key=lambda kv: kv[0])}
+            "params": sorted((params or {}).items(), key=lambda kv: kv[0]),
+            "bridge": bridge_hash(), "level": level}
     h.update(json.dumps(meta, sort_keys=True, default=str).encode())
     return h.hexdigest()
 
@@ -47,8 +59,8 @@ class CachedEngine:
         return self.dir / f"{key}.json"
 
     def query(self, xml: str, action: str = "get_stats", config: Optional[dict] = None,
-              fields: Optional[list] = None, **params: Any) -> Dict[str, Any]:
-        key = cache_key(xml, action, config, fields, params, self._commit)
+              fields: Optional[list] = None, level: Optional[int] = None, **params: Any) -> Dict[str, Any]:
+        key = cache_key(xml, action, config, fields, params, self._commit, level)
         f = self._path(key)
         if not self.refresh and f.exists():
             try:
@@ -56,9 +68,11 @@ class CachedEngine:
             except Exception:
                 pass
         pob = self._engine()
-        if self._loaded != xml or config:
+        if self._loaded != (xml, level) or config:
             pob.load_build(xml)
-            self._loaded = xml if not config else None
+            self._loaded = (xml, level) if not config else None
+            if level:
+                pob.call("set_level", level=level)
             if config:
                 pob.call("set_config", config=config)
         kw = dict(params)
@@ -66,17 +80,24 @@ class CachedEngine:
             kw["fields"] = fields
         res = pob.call(action, **kw)
         self.dir.mkdir(parents=True, exist_ok=True)
-        f.write_text(json.dumps(res))
+        tmp = f.with_name(f"{f.name}.{os.getpid()}.tmp")
+        tmp.write_text(json.dumps(res))
+        os.replace(tmp, f)  # atomic: readers never see a half-written entry
         return res
 
-    def stats(self, xml, config=None, fields=None):
-        return self.query(xml, "get_stats", config, fields)["stats"]
+    def stats(self, xml, config=None, fields=None, level=None):
+        return self.query(xml, "get_stats", config, fields, level)["stats"]
 
     def skill_table(self, xml):
         return self.query(xml, "get_skill_table").get("skills", [])
 
-    def sum_mod(self, xml, names, db="player"):
-        return self.query(xml, "sum_mod", names=list(names), db=db)["sums"]
+    def sum_mod(self, xml, names, db="player", mod_type="BASE", cfg=None):
+        """db: player | enemy | skill (main skill's skillModList + skill cfg). cfg="skill" evaluates
+        conditional mods with the skill cfg. mod_type: BASE | INC | MORE (More = product)."""
+        kw = {"names": list(names), "db": db, "mod_type": mod_type}
+        if cfg:
+            kw["cfg"] = cfg
+        return self.query(xml, "sum_mod", **kw)["sums"]
 
     def close(self):
         if self._pob:
