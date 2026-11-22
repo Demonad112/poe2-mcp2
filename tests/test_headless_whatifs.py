@@ -1,4 +1,5 @@
 """First-class headless what-if args, bridge version in status + cache key, headless-first validate routing."""
+
 import asyncio
 import json
 from pathlib import Path
@@ -10,16 +11,31 @@ from src.pob import cache, headless
 
 
 def test_build_config_maps_whatifs():
-    cfg = headless.build_config({"enemy_level": 85, "shock_effect": 30, "fire_exposure": True,
-                                 "power_charges": 3, "frenzy_charges": 0})
-    assert cfg == {"enemyLevel": 85, "conditionEnemyShocked": True, "conditionShockEffect": 30,
-                   "conditionEnemyFireExposure": True, "usePowerCharges": True, "overridePowerCharges": 3,
-                   "useFrenzyCharges": False}
+    cfg = headless.build_config(
+        {
+            "enemy_level": 85,
+            "shock_effect": 30,
+            "fire_exposure": True,
+            "power_charges": 3,
+            "frenzy_charges": 0,
+        }
+    )
+    assert cfg == {
+        "enemyLevel": 85,
+        "conditionEnemyShocked": True,
+        "conditionShockEffect": 30,
+        "conditionEnemyFireExposure": True,
+        "usePowerCharges": True,
+        "overridePowerCharges": 3,
+        "useFrenzyCharges": False,
+    }
 
 
 def test_build_config_raw_config_wins_and_empty_is_none():
     assert headless.build_config({}) is None
-    assert headless.build_config({"enemy_level": 80, "config": {"enemyLevel": 82}}) == {"enemyLevel": 82}
+    assert headless.build_config({"enemy_level": 80, "config": {"enemyLevel": 82}}) == {
+        "enemyLevel": 82
+    }
 
 
 def test_bridge_version_in_status_and_cache_key(monkeypatch):
@@ -38,9 +54,18 @@ def test_whatif_props_exposed_on_calc_and_validate_schemas():
 
 
 def test_validate_build_constraints_fallback_is_labelled_approximate():
-    out = asyncio.run(M._handle_validate_build_constraints(
-        M.__new__(M), {"character_data": {"fire_resistance": 75, "cold_resistance": 75,
-                                          "lightning_resistance": 75}}))
+    out = asyncio.run(
+        M._handle_validate_build_constraints(
+            M.__new__(M),
+            {
+                "character_data": {
+                    "fire_resistance": 75,
+                    "cold_resistance": 75,
+                    "lightning_resistance": 75,
+                }
+            },
+        )
+    )
     text = out[0].text
     assert text.startswith("[approximate")
     assert "Build Constraint Validation" in text
@@ -57,8 +82,11 @@ def test_engine_whatifs_and_validate_route(tmp_path):
     base = headless.calc(xml, None, ["Life"])["stats"]["Life"]
     assert base > 0
     server = M.__new__(M)
-    out = asyncio.run(server._handle_headless_pob_calc(
-        {"pob_file_path": str(f), "enemy_level": 85, "fields": ["TotalDPS"]}))
+    out = asyncio.run(
+        server._handle_headless_pob_calc(
+            {"pob_file_path": str(f), "enemy_level": 85, "fields": ["TotalDPS"]}
+        )
+    )
     assert json.loads(out[0].text)["stats"]["TotalDPS"] > 0
     val = asyncio.run(server._handle_validate_build_constraints({"pob_file_path": str(f)}))
     assert val[0].text.startswith("[PoB-exact")
