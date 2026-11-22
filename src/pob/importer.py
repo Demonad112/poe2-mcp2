@@ -223,7 +223,7 @@ class PoBImporter:
         from the (first/default) ItemSet so equipped items carry their
         slot; unassigned items (spares/swaps) keep slot=None.
         """
-        items = []
+        items: List[Dict[str, Any]] = []
         items_elem = root.find("./Items")
 
         if items_elem is None:
@@ -231,7 +231,9 @@ class PoBImporter:
 
         # id -> slot name from the default ItemSet's Slot assignments
         slot_by_item_id: Dict[str, str] = {}
-        item_set = items_elem.find("ItemSet") or root.find(".//ItemSet")
+        item_set = items_elem.find("ItemSet")
+        if item_set is None:  # Element truthiness is child-count, so test None explicitly
+            item_set = root.find(".//ItemSet")
         if item_set is not None:
             for slot_elem in item_set.findall("Slot"):
                 item_id = slot_elem.get("itemId")
@@ -241,8 +243,8 @@ class PoBImporter:
 
         for item_elem in items_elem.findall("Item"):
             item_id = item_elem.get("id")
-            slot = self._get_item_slot(item_elem) or slot_by_item_id.get(item_id)
-            item_data = {
+            slot = self._get_item_slot(item_elem) or slot_by_item_id.get(item_id or "")
+            item_data: Dict[str, Any] = {
                 "id": item_id,
                 "slot": slot,
                 "weapon_set": self._weapon_set_for_slot(slot),
@@ -390,7 +392,7 @@ class PoBImporter:
         Parse skills from PoB XML
         Skills are grouped with their support gems
         """
-        skills = []
+        skills: List[Dict[str, Any]] = []
         skills_elem = root.find("./Skills")
 
         if skills_elem is None:
@@ -398,7 +400,7 @@ class PoBImporter:
 
         for skill_set in skills_elem.findall("SkillSet"):
             for skill in skill_set.findall("Skill"):
-                skill_data = {
+                skill_data: Dict[str, Any] = {
                     "label": skill.get("label", ""),
                     "enabled": skill.get("enabled", "true") == "true",
                     "slot": skill.get("slot"),

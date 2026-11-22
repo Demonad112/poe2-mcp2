@@ -109,7 +109,8 @@ class PoBClient:
                     raise PoBCommandError(self._last_error)
 
                 self._connected = True
-                return response.get("result", {})
+                result: Dict[str, Any] = response.get("result", {})
+                return result
 
         except socket.timeout:
             self._connected = False
