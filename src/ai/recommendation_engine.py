@@ -1,9 +1,10 @@
 """AI-powered recommendation engine"""
 
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from anthropic import AsyncAnthropic
+from anthropic.types import TextBlock
 
 try:
     from ..config import settings
@@ -16,8 +17,9 @@ logger = logging.getLogger(__name__)
 class RecommendationEngine:
     """Generates AI-powered build recommendations"""
 
-    def __init__(self, db_manager) -> None:
+    def __init__(self, db_manager: Any) -> None:
         self.db_manager = db_manager
+        self.client: Optional[AsyncAnthropic]
         if settings.ANTHROPIC_API_KEY:
             self.client = AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
         else:
@@ -51,7 +53,7 @@ Provide 3-5 specific, actionable recommendations to improve this build."""
                 messages=[{"role": "user", "content": prompt}],
             )
 
-            return response.content[0].text
+            return "".join(b.text for b in response.content if isinstance(b, TextBlock))
 
         except Exception as e:
             logger.error(f"AI recommendations failed: {e}")
