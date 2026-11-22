@@ -20,40 +20,73 @@ FIXTURES = {
     "synthetic_spell_fireball": {
         "level": 90,
         "gems": [("FireballPlayer", 20)],
-        "items": [("Weapon 1", "Rarity: Rare\nTest Staff\nAshen Staff\n80% increased Spell Damage\n"
-                               "25% increased Cast Speed\n+30% to Critical Damage Bonus\nPenetrate 15% Fire Resistance")],
+        "items": [
+            (
+                "Weapon 1",
+                "Rarity: Rare\nTest Staff\nAshen Staff\n80% increased Spell Damage\n"
+                "25% increased Cast Speed\n+30% to Critical Damage Bonus\nPenetrate 15% Fire Resistance",
+            )
+        ],
     },
     "synthetic_attack_lightning_arrow": {
         "level": 90,
         "gems": [("LightningArrowPlayer", 20)],
-        "items": [("Weapon 1", "Rarity: Rare\nTest Bow\nHeavy Bow\nAdds 20 to 40 Physical Damage\n"
-                               "40% increased Attack Speed\n+25% to Critical Damage Bonus")],
+        "items": [
+            (
+                "Weapon 1",
+                "Rarity: Rare\nTest Bow\nHeavy Bow\nAdds 20 to 40 Physical Damage\n"
+                "40% increased Attack Speed\n+25% to Critical Damage Bonus",
+            )
+        ],
     },
     "synthetic_dot_contagion": {
         "level": 90,
         "gems": [("ContagionPlayer", 20)],
-        "items": [("Weapon 1", "Rarity: Rare\nTest Wand\nWithered Wand\n70% increased Chaos Damage\n"
-                               "40% increased Skill Effect Duration")],
+        "items": [
+            (
+                "Weapon 1",
+                "Rarity: Rare\nTest Wand\nWithered Wand\n70% increased Chaos Damage\n"
+                "40% increased Skill Effect Duration",
+            )
+        ],
     },
     "synthetic_minion_zombie": {
         "level": 90,
         "gems": [("RaiseZombiePlayer", 20)],
-        "items": [("Weapon 1", "Rarity: Rare\nTest Sceptre\nOrnate Sceptre\n+1 to Level of all Minion Skills\n"
-                               "40% increased Minion Damage")],
+        "items": [
+            (
+                "Weapon 1",
+                "Rarity: Rare\nTest Sceptre\nOrnate Sceptre\n+1 to Level of all Minion Skills\n"
+                "40% increased Minion Damage",
+            )
+        ],
     },
     "synthetic_hit_dot_ignite_fireball": {
         "level": 90,
         "gems": [("FireballPlayer", 20)],
-        "items": [("Weapon 1", "Rarity: Rare\nTest Staff\nAshen Staff\n100% chance to Ignite\n"
-                               "80% increased Fire Damage\n+30% to Critical Damage Bonus")],
+        "items": [
+            (
+                "Weapon 1",
+                "Rarity: Rare\nTest Staff\nAshen Staff\n100% chance to Ignite\n"
+                "80% increased Fire Damage\n+30% to Critical Damage Bonus",
+            )
+        ],
     },
     "synthetic_es_ci": {
         "level": 90,
         "gems": [("SparkPlayer", 20)],
-        "items": [("Body Armour", "Rarity: Rare\nTest Robe\nSilk Robe\n+400 to maximum Energy Shield\n"
-                                  "+40% to Fire Resistance\n+40% to Cold Resistance\n+30% to Lightning Resistance"),
-                  ("Amulet", "Rarity: Rare\nTest Amulet\nJade Amulet\n+60 to maximum Energy Shield\n"
-                             "Maximum Life becomes 1\nImmune to Chaos Damage")],
+        "items": [
+            (
+                "Body Armour",
+                "Rarity: Rare\nTest Robe\nSilk Robe\n+400 to maximum Energy Shield\n"
+                "+40% to Fire Resistance\n+40% to Cold Resistance\n+30% to Lightning Resistance",
+            ),
+            (
+                "Amulet",
+                "Rarity: Rare\nTest Amulet\nJade Amulet\n+60 to maximum Energy Shield\n"
+                "Maximum Life becomes 1\nImmune to Chaos Damage",
+            ),
+        ],
     },
 }
 
@@ -66,7 +99,8 @@ def build_xml(skeleton: str, spec: dict) -> str:
     skills = "".join(
         f'<Skill enabled="true" mainActiveSkill="1" label="" slot="">'
         f'<Gem enabled="true" count="1" level="{lvl}" quality="0" skillId="{sid}" qualityId="Default"/></Skill>'
-        for sid, lvl in spec["gems"])
+        for sid, lvl in spec["gems"]
+    )
     x = x.replace('<SkillSet id="1"/>', f'<SkillSet id="1">{skills}</SkillSet>')
     items, slots = [], []
     for i, (slot, text) in enumerate(spec["items"], 1):
@@ -74,7 +108,11 @@ def build_xml(skeleton: str, spec: dict) -> str:
         slots.append((slot, i))
     x = re.sub(r"<Items [^>]*>", lambda m: m.group(0) + "".join(items), x, count=1)
     for slot, i in slots:
-        x = x.replace(f'<Slot itemId="0" itemPbURL="" name="{slot}"/>', f'<Slot itemId="{i}" itemPbURL="" name="{slot}"/>', 1)
+        x = x.replace(
+            f'<Slot itemId="0" itemPbURL="" name="{slot}"/>',
+            f'<Slot itemId="{i}" itemPbURL="" name="{slot}"/>',
+            1,
+        )
     return x
 
 
@@ -87,9 +125,23 @@ def main():
         xml = build_xml(skeleton, spec)
         with headless.HeadlessPoB() as pob:
             pob.load_build(xml)
-            st = pob.call("get_stats", fields=["TotalDPS", "CombinedDPS", "TotalDotDPS", "IgniteDPS", "Minion.TotalDPS", "Life", "EnergyShield", "Speed"])["stats"]
+            st = pob.call(
+                "get_stats",
+                fields=[
+                    "TotalDPS",
+                    "CombinedDPS",
+                    "TotalDotDPS",
+                    "IgniteDPS",
+                    "Minion.TotalDPS",
+                    "Life",
+                    "EnergyShield",
+                    "Speed",
+                ],
+            )["stats"]
         print(name, {k: round(v, 1) if isinstance(v, (int, float)) else v for k, v in st.items()})
-        (OUT / f"{name}.json").write_text(json.dumps({"name": name, "synthetic": True, "pob_xml": xml}, indent=1) + "\n")
+        (OUT / f"{name}.json").write_text(
+            json.dumps({"name": name, "synthetic": True, "pob_xml": xml}, indent=1) + "\n"
+        )
 
 
 if __name__ == "__main__":

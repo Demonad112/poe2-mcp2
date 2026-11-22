@@ -1,4 +1,5 @@
 """Pure tests for reconcile_with_ninja (stubbed headless engine, no PoB needed)."""
+
 import json
 from pathlib import Path
 
@@ -38,7 +39,9 @@ class StubHeadless:
         rows = []
         for sk in self.model.get("skills", []):
             for e in sk.get("dps", []):
-                rows.append({"name": e["name"], "TotalDPS": (e.get("dps") or 0) * self.k, "split": {}})
+                rows.append(
+                    {"name": e["name"], "TotalDPS": (e.get("dps") or 0) * self.k, "split": {}}
+                )
         return rows
 
 
@@ -83,7 +86,11 @@ def test_markdown_lists_failures_first():
     m = _model()
     r = rp.reconcile_with_ninja(m, headless=StubHeadless(m, scale={"life": 2}))
     md = rp.format_verify_markdown(r)
-    assert "life" in md and md.index("life") < md.index("energyShield") if "energyShield" in md else True
+    assert (
+        "life" in md and md.index("life") < md.index("energyShield")
+        if "energyShield" in md
+        else True
+    )
 
 
 def _split_stub(hit_by_type, comb_by_type):
@@ -92,16 +99,29 @@ def _split_stub(hit_by_type, comb_by_type):
 
     class S(StubHeadless):
         def get_skill_table(self):
-            return [{"name": name, "TotalDPS": 1.0, "split": {
-                t.capitalize(): {"hit_average": hit_by_type.get(t, 0), "combined_average": comb_by_type.get(t, 0)}
-                for t in ("physical", "lightning", "cold", "fire", "chaos")}}]
+            return [
+                {
+                    "name": name,
+                    "TotalDPS": 1.0,
+                    "split": {
+                        t.capitalize(): {
+                            "hit_average": hit_by_type.get(t, 0),
+                            "combined_average": comb_by_type.get(t, 0),
+                        }
+                        for t in ("physical", "lightning", "cold", "fire", "chaos")
+                    },
+                }
+            ]
+
     return m, name, S(m)
 
 
 def test_split_uses_post_mitigation_hit_average_when_present():
     # regression: split must come from <Type>HitAverage (ninja basis), not crit-weighted StoredCombinedAvg
-    m, name, stub = _split_stub({"physical": 8, "cold": 34, "lightning": 56, "fire": 2},
-                                {"physical": 50, "cold": 10, "lightning": 10})
+    m, name, stub = _split_stub(
+        {"physical": 8, "cold": 34, "lightning": 56, "fire": 2},
+        {"physical": 50, "cold": 10, "lightning": 10},
+    )
     r = rp.reconcile_with_ninja(m, headless=stub)
     sk = [s for s in r["skills"] if s["name"] == name][0]
     assert sk["mcp"]["split_basis"] == "post-mitigation HitAverage"
@@ -113,7 +133,11 @@ def test_split_falls_back_to_combined_and_flags_basis():
     r = rp.reconcile_with_ninja(m, headless=stub)
     sk = [s for s in r["skills"] if s["name"] == name][0]
     assert sk["mcp"]["split_basis"] == "pre-mitigation StoredCombinedAvg"
-    assert any("basis mismatch" in d["cause"] for d in r["diffs"] if ".split." in d["field"] and not d["pass"])
+    assert any(
+        "basis mismatch" in d["cause"]
+        for d in r["diffs"]
+        if ".split." in d["field"] and not d["pass"]
+    )
 
 
 def test_config_override_applied_and_echoed():

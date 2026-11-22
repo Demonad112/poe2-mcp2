@@ -11,8 +11,8 @@ This module provides comprehensive defense calculations including:
 All formulas are specific to Path of Exile 2 and differ from PoE1 in key areas.
 """
 
-import math
 import logging
+import math
 from dataclasses import dataclass
 from typing import Any, Dict
 

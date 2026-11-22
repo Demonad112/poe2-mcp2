@@ -106,6 +106,7 @@ class EnemyStats:
         shock = max(20.0, min(100.0, self.shock_magnitude)) if self.is_shocked else 0.0
         return max(0.0, 1.0 + (self.increased_damage_taken + shock) / 100.0)
 
+
 # PoB data.misc.ServerTickRate = 1 / 0.033 (Modules/Data.lua)
 SERVER_TICK_RATE = 1 / 0.033
 
@@ -193,15 +194,21 @@ class SpellDPSCalculator:
             # Step 6: Calculate expected damage with crits
             # PoB: (base + added) * (1 + inc/100) * (1 + more/100), clamped to [0, 100]
             crit_chance = (
-                max(min(
-                    (spell.base_crit_chance + char_mods.added_crit_chance)
-                    * (1.0 + char_mods.increased_crit_chance / 100.0)
-                    * (1.0 + char_mods.more_crit_chance / 100.0),
-                    100.0), 0.0) / 100.0
+                max(
+                    min(
+                        (spell.base_crit_chance + char_mods.added_crit_chance)
+                        * (1.0 + char_mods.increased_crit_chance / 100.0)
+                        * (1.0 + char_mods.more_crit_chance / 100.0),
+                        100.0,
+                    ),
+                    0.0,
+                )
+                / 100.0
             )
             crit_multiplier = self._calculate_crit_multiplier(
-                char_mods.added_crit_bonus, char_mods.increased_crit_damage,
-                char_mods.more_crit_damage
+                char_mods.added_crit_bonus,
+                char_mods.increased_crit_damage,
+                char_mods.more_crit_damage,
             )
 
             non_crit_damage = damage_after_more * (1.0 - crit_chance)
@@ -218,8 +225,10 @@ class SpellDPSCalculator:
 
             # Step 9: Calculate DPS (damage × casts per second)
             cast_speed = self._calculate_cast_speed(
-                spell.base_cast_time, char_mods.increased_cast_speed,
-                is_channelled=spell.is_channelled, repeats=spell.repeats,
+                spell.base_cast_time,
+                char_mods.increased_cast_speed,
+                is_channelled=spell.is_channelled,
+                repeats=spell.repeats,
             )
             dps = damage_after_resistance * cast_speed
 
@@ -431,8 +440,13 @@ class SpellDPSCalculator:
 
         return damage * damage_multiplier
 
-    def _calculate_cast_speed(self, base_cast_time: float, increased_cast_speed: float,
-                              is_channelled: bool = False, repeats: float = 1) -> float:
+    def _calculate_cast_speed(
+        self,
+        base_cast_time: float,
+        increased_cast_speed: float,
+        is_channelled: bool = False,
+        repeats: float = 1,
+    ) -> float:
         """Calculate casts per second from base cast time and modifiers.
 
         Applies increased cast speed modifiers to reduce the actual cast time,

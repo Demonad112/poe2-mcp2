@@ -1,4 +1,5 @@
 """A trade-site 403 must surface as an error, not as 'No items found'."""
+
 import asyncio
 from unittest.mock import AsyncMock, MagicMock
 

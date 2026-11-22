@@ -1,4 +1,5 @@
 """Live engine test for get_skill_table. Skipped unless the headless engine is set up."""
+
 import json
 from pathlib import Path
 
@@ -8,7 +9,9 @@ from src.pob import headless
 
 pytestmark = [
     pytest.mark.pob_required,
-    pytest.mark.skipif(not headless.find_environment()["ready"], reason="headless PoB2 engine not set up"),
+    pytest.mark.skipif(
+        not headless.find_environment()["ready"], reason="headless PoB2 engine not set up"
+    ),
 ]
 
 FIX = Path(__file__).parent / "fixtures" / "ninja_yykiuy_charmodel.json"
@@ -37,7 +40,11 @@ def test_attack_rows_read_per_hand_output():
     for r in rows.values():
         if r.get("TotalDPS", 0) > 0 and r.get("Speed", 0) > 0 and r.get("AverageHit") is not None:
             # TotalDPS = AverageHit * HitChance% * Speed for single-hit skills
-            if abs(r["AverageHit"] * r["HitChance"] / 100 * r["Speed"] - r["TotalDPS"]) / r["TotalDPS"] < 0.02:
+            if (
+                abs(r["AverageHit"] * r["HitChance"] / 100 * r["Speed"] - r["TotalDPS"])
+                / r["TotalDPS"]
+                < 0.02
+            ):
                 checked += 1
     assert checked >= 3
     assert rows["Falling Thunder"]["AverageHit"] > 0

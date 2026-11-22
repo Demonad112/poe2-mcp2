@@ -119,11 +119,18 @@ def build_config(args: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     if args.get("shock_effect") is not None:
         cfg["conditionEnemyShocked"] = True
         cfg["conditionShockEffect"] = int(args["shock_effect"])
-    for arg, key in (("fire_exposure", "conditionEnemyFireExposure"), ("cold_exposure", "conditionEnemyColdExposure"),
-                     ("lightning_exposure", "conditionEnemyLightningExposure")):
+    for arg, key in (
+        ("fire_exposure", "conditionEnemyFireExposure"),
+        ("cold_exposure", "conditionEnemyColdExposure"),
+        ("lightning_exposure", "conditionEnemyLightningExposure"),
+    ):
         if args.get(arg) is not None:
             cfg[key] = bool(args[arg])
-    for arg, name in (("power_charges", "Power"), ("frenzy_charges", "Frenzy"), ("endurance_charges", "Endurance")):
+    for arg, name in (
+        ("power_charges", "Power"),
+        ("frenzy_charges", "Frenzy"),
+        ("endurance_charges", "Endurance"),
+    ):
         n = args.get(arg)
         if n is not None:
             cfg[f"use{name}Charges"] = int(n) > 0
@@ -137,8 +144,12 @@ def pob_commit() -> str:
     """Short git hash of the PathOfBuilding-PoE2 checkout in use (falls back to the pin)."""
     src = pob_src_dir()
     try:
-        r = subprocess.run(["git", "-C", str(src), "rev-parse", "--short=7", "HEAD"],
-                           capture_output=True, text=True, timeout=10)
+        r = subprocess.run(
+            ["git", "-C", str(src), "rev-parse", "--short=7", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
         if r.returncode == 0 and r.stdout.strip():
             return r.stdout.strip()
     except Exception:
@@ -174,7 +185,11 @@ def luajit_supports_compound_assign(luajit: Optional[str]) -> bool:
 def find_environment() -> Dict[str, Any]:
     src = pob_src_dir()
     pinned = HOME / "LuaJIT" / "src" / "luajit"  # built by scripts/setup_headless_pob.sh
-    luajit = os.environ.get("POE2_LUAJIT") or (str(pinned) if pinned.is_file() else None) or shutil.which("luajit")
+    luajit = (
+        os.environ.get("POE2_LUAJIT")
+        or (str(pinned) if pinned.is_file() else None)
+        or shutil.which("luajit")
+    )
     utf8 = HOME / "lua_modules" / "lib" / "lua" / "5.1" / "lua-utf8.so"
     return {
         "luajit": luajit,
@@ -277,8 +292,12 @@ class HeadlessPoB:
         self.close()
 
 
-def calc(code_or_xml: str, config: Optional[Dict[str, Any]] = None,
-         fields: Optional[List[str]] = None, level: Optional[int] = None) -> Dict[str, Any]:
+def calc(
+    code_or_xml: str,
+    config: Optional[Dict[str, Any]] = None,
+    fields: Optional[List[str]] = None,
+    level: Optional[int] = None,
+) -> Dict[str, Any]:
     """One-shot: load a build, optionally set level/config overrides, return PoB stats."""
     with HeadlessPoB() as pob:
         pob.load_build(code_or_xml)
