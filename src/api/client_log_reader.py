@@ -116,20 +116,21 @@ class ClientLogReader:
         partial) first line. Decodes with errors='replace' because the log is
         UTF-8 but can contain stray bytes from chat.
         """
-        if not self.is_available():
+        log_path = self.log_path
+        if log_path is None or not self.is_available():
             return []
         max_bytes = max_bytes or self.default_tail_bytes
         try:
-            size = self.log_path.stat().st_size
+            size = log_path.stat().st_size
             start = max(0, size - max_bytes)
-            with open(self.log_path, "rb") as f:
+            with open(log_path, "rb") as f:
                 f.seek(start)
                 chunk = f.read()
         except OSError:
             return []
 
         text = chunk.decode("utf-8", errors="replace")
-        lines = text.splitlines()
+        lines: List[str] = text.splitlines()
         # Drop the first fragment if we started mid-file (it's a partial line).
         if start > 0 and lines:
             lines = lines[1:]

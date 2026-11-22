@@ -5,11 +5,11 @@ Configuration management for PoE2 Build Optimizer
 import logging
 import secrets as _secrets
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 import yaml
-from pydantic import ConfigDict, Field, field_validator, model_validator
-from pydantic_settings import BaseSettings
+from pydantic import Field, field_validator, model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +94,14 @@ class Settings(BaseSettings):
         default=False
     )  # AI-powered insights (requires additional setup)
 
+    # AI (used by src/ai/* when ENABLE_AI_INSIGHTS=true). All optional: without
+    # ANTHROPIC_API_KEY the AI components initialise in a disabled state.
+    ANTHROPIC_API_KEY: Optional[str] = Field(default=None)
+    AI_MODEL: str = Field(default="claude-sonnet-4-5")
+    AI_MAX_TOKENS: int = Field(default=1024)
+    # None = leave the API default. Sent via extra_body so it works across SDK versions.
+    AI_TEMPERATURE: Optional[float] = Field(default=None)
+
     # Web Interface
     WEB_PORT: int = Field(default=3000)
     CORS_ORIGINS: str = Field(default="http://localhost:3000,http://127.0.0.1:3000")
@@ -143,7 +151,6 @@ class Settings(BaseSettings):
 
     # Performance
     MAX_WORKERS: int = Field(default=4)
-    REQUEST_TIMEOUT: int = Field(default=30)
     CALCULATION_TIMEOUT: int = Field(default=10)
 
     # Monitoring
@@ -151,7 +158,7 @@ class Settings(BaseSettings):
     PROMETHEUS_ENABLED: bool = Field(default=False)
     PROMETHEUS_PORT: int = Field(default=9090)
 
-    model_config = ConfigDict(
+    model_config = SettingsConfigDict(
         env_file=str(BASE_DIR / ".env"),  # Use absolute path
         env_file_encoding="utf-8",
         case_sensitive=True,
@@ -164,12 +171,13 @@ class Settings(BaseSettings):
     )
 
 
-def load_yaml_config(config_path: str = "config.yaml") -> dict:
+def load_yaml_config(config_path: str = "config.yaml") -> Dict[str, Any]:
     """Load configuration from YAML file"""
     config_file = Path(config_path)
     if config_file.exists():
         with open(config_file, "r") as f:
-            return yaml.safe_load(f)
+            data: Dict[str, Any] = yaml.safe_load(f)
+            return data
     return {}
 
 

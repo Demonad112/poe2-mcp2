@@ -65,10 +65,12 @@ def suggest_from_charmodel(cm: Dict[str, Any]) -> Dict[str, Any]:
         )
 
     # 2. Weakest hit vs the rest.
-    hits = {t: ds.get(f"{t}MaximumHitTaken") for t in _HIT if ds.get(f"{t}MaximumHitTaken")}
+    hits: Dict[str, float] = {
+        t: ds[f"{t}MaximumHitTaken"] for t in _HIT if ds.get(f"{t}MaximumHitTaken")
+    }
     if hits:
-        lo = min(hits, key=hits.get)
-        hi = max(hits, key=hits.get)
+        lo = min(hits, key=lambda t: hits[t])
+        hi = max(hits, key=lambda t: hits[t])
         ratio = hits[hi] / hits[lo]
         ehp = ds.get("effectiveHealthPool")
         if ratio >= 2:
@@ -109,7 +111,7 @@ def suggest_from_charmodel(cm: Dict[str, Any]) -> Dict[str, Any]:
         dt = e.get("damageTypes") or []
         if len(dt) >= 5 and sum(dt) > 0:
             split = {t: dt[i] for i, t in enumerate(_ORDER)}
-            top = max(split, key=split.get)
+            top = max(split, key=lambda t: split[t])
             out.append(
                 _s(
                     "damage",

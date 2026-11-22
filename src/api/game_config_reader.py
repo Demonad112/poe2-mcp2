@@ -44,6 +44,13 @@ _ACT_ENV_HINTS = {
 }
 
 
+class _CaseSensitiveConfigParser(configparser.ConfigParser):
+    """ConfigParser that preserves key case (the game's keys are case-significant)."""
+
+    def optionxform(self, optionstr: str) -> str:
+        return optionstr
+
+
 class GameConfigReader:
     """Reader for the PoE2 client config INI.
 
@@ -91,14 +98,16 @@ class GameConfigReader:
         """
         if not self.is_available():
             return None
-        parser = configparser.ConfigParser(
+        parser = _CaseSensitiveConfigParser(
             interpolation=None,
             strict=False,  # tolerate duplicate keys rather than raising
         )
-        parser.optionxform = str  # preserve original key casing
+        config_path = self.config_path
+        if config_path is None:
+            return None
         try:
             # utf-8-sig strips the BOM the game writes before "[LOGIN]".
-            with open(self.config_path, "r", encoding="utf-8-sig") as f:
+            with open(config_path, "r", encoding="utf-8-sig") as f:
                 parser.read_file(f)
         except (OSError, configparser.Error):
             return None

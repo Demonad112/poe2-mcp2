@@ -3,11 +3,14 @@ SQLAlchemy database models for PoE2 game data
 """
 
 from datetime import datetime
+from typing import Any, Optional
 
-from sqlalchemy import JSON, Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-Base = declarative_base()
+
+class Base(DeclarativeBase):
+    pass
 
 
 class Item(Base):
@@ -15,21 +18,23 @@ class Item(Base):
 
     __tablename__ = "items"
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False, index=True)
-    base_type = Column(String, nullable=False)
-    item_class = Column(String, nullable=False, index=True)
-    rarity = Column(String)  # normal, magic, rare, unique
-    item_level = Column(Integer)
-    required_level = Column(Integer)
-    properties = Column(JSON)  # Dict of properties
-    requirements = Column(JSON)  # Stat requirements
-    implicit_mods = Column(JSON)  # List of implicit modifiers
-    explicit_mods = Column(JSON)  # List of explicit modifiers
-    flavour_text = Column(Text)
-    is_corrupted = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    base_type: Mapped[str] = mapped_column(String, nullable=False)
+    item_class: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    rarity: Mapped[Optional[str]] = mapped_column(String)  # normal, magic, rare, unique
+    item_level: Mapped[Optional[int]] = mapped_column(Integer)
+    required_level: Mapped[Optional[int]] = mapped_column(Integer)
+    properties: Mapped[Optional[Any]] = mapped_column(JSON)  # Dict of properties
+    requirements: Mapped[Optional[Any]] = mapped_column(JSON)  # Stat requirements
+    implicit_mods: Mapped[Optional[Any]] = mapped_column(JSON)  # List of implicit modifiers
+    explicit_mods: Mapped[Optional[Any]] = mapped_column(JSON)  # List of explicit modifiers
+    flavour_text: Mapped[Optional[str]] = mapped_column(Text)
+    is_corrupted: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
+    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
 
 
 class UniqueItem(Base):
@@ -37,21 +42,29 @@ class UniqueItem(Base):
 
     __tablename__ = "unique_items"
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False, unique=True, index=True)
-    base_type = Column(String, nullable=False)
-    item_class = Column(String, nullable=False, index=True)  # Helmet, Body Armour, Weapon, etc.
-    required_level = Column(Integer)  # Alias for level_requirement
-    level_requirement = Column(Integer)  # Alternative name used by scripts
-    modifiers = Column(JSON)  # List of unique modifiers (alias for mods)
-    mods = Column(JSON)  # Alternative name for modifiers
-    stats = Column(JSON)  # Item stats including chaos_value
-    flavour_text = Column(Text)
-    description = Column(Text)  # Additional description
-    drop_level = Column(Integer)
-    rarity_tier = Column(Integer)  # 1-5
-    tags = Column(JSON)  # List of tags (e.g., ["caster", "spell_damage"])
-    created_at = Column(DateTime, default=datetime.utcnow)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
+    base_type: Mapped[str] = mapped_column(String, nullable=False)
+    item_class: Mapped[str] = mapped_column(
+        String, nullable=False, index=True
+    )  # Helmet, Body Armour, Weapon, etc.
+    required_level: Mapped[Optional[int]] = mapped_column(Integer)  # Alias for level_requirement
+    level_requirement: Mapped[Optional[int]] = mapped_column(
+        Integer
+    )  # Alternative name used by scripts
+    modifiers: Mapped[Optional[Any]] = mapped_column(
+        JSON
+    )  # List of unique modifiers (alias for mods)
+    mods: Mapped[Optional[Any]] = mapped_column(JSON)  # Alternative name for modifiers
+    stats: Mapped[Optional[Any]] = mapped_column(JSON)  # Item stats including chaos_value
+    flavour_text: Mapped[Optional[str]] = mapped_column(Text)
+    description: Mapped[Optional[str]] = mapped_column(Text)  # Additional description
+    drop_level: Mapped[Optional[int]] = mapped_column(Integer)
+    rarity_tier: Mapped[Optional[int]] = mapped_column(Integer)  # 1-5
+    tags: Mapped[Optional[Any]] = mapped_column(
+        JSON
+    )  # List of tags (e.g., ["caster", "spell_damage"])
+    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.utcnow)
 
 
 class Modifier(Base):
@@ -59,16 +72,18 @@ class Modifier(Base):
 
     __tablename__ = "modifiers"
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False, index=True)
-    mod_type = Column(String, nullable=False)  # prefix, suffix, implicit, explicit
-    stat_text = Column(Text)
-    min_value = Column(Float)
-    max_value = Column(Float)
-    tags = Column(JSON)
-    tier = Column(Integer)
-    item_level_requirement = Column(Integer)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    mod_type: Mapped[str] = mapped_column(
+        String, nullable=False
+    )  # prefix, suffix, implicit, explicit
+    stat_text: Mapped[Optional[str]] = mapped_column(Text)
+    min_value: Mapped[Optional[float]] = mapped_column(Float)
+    max_value: Mapped[Optional[float]] = mapped_column(Float)
+    tags: Mapped[Optional[Any]] = mapped_column(JSON)
+    tier: Mapped[Optional[int]] = mapped_column(Integer)
+    item_level_requirement: Mapped[Optional[int]] = mapped_column(Integer)
+    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.utcnow)
 
 
 class PassiveNode(Base):
@@ -76,20 +91,20 @@ class PassiveNode(Base):
 
     __tablename__ = "passive_nodes"
 
-    id = Column(Integer, primary_key=True)
-    node_id = Column(
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    node_id: Mapped[str] = mapped_column(
         String, nullable=False, unique=True, index=True
     )  # Changed from Integer - uses Id field from .datc64
-    name = Column(String)
-    is_keystone = Column(Boolean, default=False)
-    is_notable = Column(Boolean, default=False)
-    is_mastery = Column(Boolean, default=False)
-    stats = Column(JSON)  # List of stat modifiers
-    reminder_text = Column(Text)
-    ascendancy_name = Column(String)  # If part of ascendancy
-    position_x = Column(Float)
-    position_y = Column(Float)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    name: Mapped[Optional[str]] = mapped_column(String)
+    is_keystone: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
+    is_notable: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
+    is_mastery: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
+    stats: Mapped[Optional[Any]] = mapped_column(JSON)  # List of stat modifiers
+    reminder_text: Mapped[Optional[str]] = mapped_column(Text)
+    ascendancy_name: Mapped[Optional[str]] = mapped_column(String)  # If part of ascendancy
+    position_x: Mapped[Optional[float]] = mapped_column(Float)
+    position_y: Mapped[Optional[float]] = mapped_column(Float)
+    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.utcnow)
 
 
 class PassiveConnection(Base):
@@ -97,9 +112,11 @@ class PassiveConnection(Base):
 
     __tablename__ = "passive_connections"
 
-    id = Column(Integer, primary_key=True)
-    from_node_id = Column(Integer, ForeignKey("passive_nodes.node_id"))
-    to_node_id = Column(Integer, ForeignKey("passive_nodes.node_id"))
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    from_node_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("passive_nodes.node_id")
+    )
+    to_node_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("passive_nodes.node_id"))
 
 
 class SkillGem(Base):
@@ -107,22 +124,26 @@ class SkillGem(Base):
 
     __tablename__ = "skill_gems"
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False, index=True)
-    gem_type = Column(String)  # active, support
-    tags = Column(JSON)  # List of tags
-    primary_attribute = Column(String)  # str, dex, int
-    required_level = Column(Integer)
-    mana_cost = Column(Integer)
-    spirit_cost = Column(Integer)  # Flat spirit reservation cost (if constant)
-    spirit_cost_by_level = Column(JSON)  # Spirit cost per gem level (if variable)
-    base_damage = Column(JSON)
-    damage_effectiveness = Column(Float)
-    crit_chance = Column(Float)
-    attack_speed = Column(Float)
-    quality_stats = Column(JSON)
-    per_level_stats = Column(JSON)  # Stats at each gem level
-    created_at = Column(DateTime, default=datetime.utcnow)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    gem_type: Mapped[Optional[str]] = mapped_column(String)  # active, support
+    tags: Mapped[Optional[Any]] = mapped_column(JSON)  # List of tags
+    primary_attribute: Mapped[Optional[str]] = mapped_column(String)  # str, dex, int
+    required_level: Mapped[Optional[int]] = mapped_column(Integer)
+    mana_cost: Mapped[Optional[int]] = mapped_column(Integer)
+    spirit_cost: Mapped[Optional[int]] = mapped_column(
+        Integer
+    )  # Flat spirit reservation cost (if constant)
+    spirit_cost_by_level: Mapped[Optional[Any]] = mapped_column(
+        JSON
+    )  # Spirit cost per gem level (if variable)
+    base_damage: Mapped[Optional[Any]] = mapped_column(JSON)
+    damage_effectiveness: Mapped[Optional[float]] = mapped_column(Float)
+    crit_chance: Mapped[Optional[float]] = mapped_column(Float)
+    attack_speed: Mapped[Optional[float]] = mapped_column(Float)
+    quality_stats: Mapped[Optional[Any]] = mapped_column(JSON)
+    per_level_stats: Mapped[Optional[Any]] = mapped_column(JSON)  # Stats at each gem level
+    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.utcnow)
 
 
 class SupportGem(Base):
@@ -130,17 +151,21 @@ class SupportGem(Base):
 
     __tablename__ = "support_gems"
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False, index=True)
-    tags = Column(JSON)
-    required_level = Column(Integer)
-    mana_multiplier = Column(Float)
-    spirit_cost = Column(Integer)  # Flat spirit reservation cost (if any)
-    spirit_cost_by_level = Column(JSON)  # Spirit cost per gem level (if variable)
-    modifiers = Column(JSON)  # List of modifiers
-    quality_stats = Column(JSON)
-    compatible_tags = Column(JSON)  # Which skill tags this supports
-    created_at = Column(DateTime, default=datetime.utcnow)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    tags: Mapped[Optional[Any]] = mapped_column(JSON)
+    required_level: Mapped[Optional[int]] = mapped_column(Integer)
+    mana_multiplier: Mapped[Optional[float]] = mapped_column(Float)
+    spirit_cost: Mapped[Optional[int]] = mapped_column(
+        Integer
+    )  # Flat spirit reservation cost (if any)
+    spirit_cost_by_level: Mapped[Optional[Any]] = mapped_column(
+        JSON
+    )  # Spirit cost per gem level (if variable)
+    modifiers: Mapped[Optional[Any]] = mapped_column(JSON)  # List of modifiers
+    quality_stats: Mapped[Optional[Any]] = mapped_column(JSON)
+    compatible_tags: Mapped[Optional[Any]] = mapped_column(JSON)  # Which skill tags this supports
+    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.utcnow)
 
 
 class Ascendancy(Base):
@@ -148,12 +173,12 @@ class Ascendancy(Base):
 
     __tablename__ = "ascendancies"
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False, unique=True, index=True)
-    base_class = Column(String, nullable=False)
-    description = Column(Text)
-    notable_passives = Column(JSON)  # List of notable passive IDs
-    created_at = Column(DateTime, default=datetime.utcnow)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
+    base_class: Mapped[str] = mapped_column(String, nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text)
+    notable_passives: Mapped[Optional[Any]] = mapped_column(JSON)  # List of notable passive IDs
+    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.utcnow)
 
 
 class SavedBuild(Base):
@@ -161,16 +186,22 @@ class SavedBuild(Base):
 
     __tablename__ = "saved_builds"
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(String, index=True)  # Optional user identification
-    build_name = Column(String, nullable=False)
-    character_data = Column(JSON)
-    optimization_history = Column(JSON)  # List of optimization results
-    notes = Column(Text)
-    tags = Column(JSON)
-    is_public = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[Optional[str]] = mapped_column(
+        String, index=True
+    )  # Optional user identification
+    build_name: Mapped[str] = mapped_column(String, nullable=False)
+    character_data: Mapped[Optional[Any]] = mapped_column(JSON)
+    optimization_history: Mapped[Optional[Any]] = mapped_column(
+        JSON
+    )  # List of optimization results
+    notes: Mapped[Optional[str]] = mapped_column(Text)
+    tags: Mapped[Optional[Any]] = mapped_column(JSON)
+    is_public: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
+    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
 
 
 class ItemMod(Base):
@@ -178,24 +209,34 @@ class ItemMod(Base):
 
     __tablename__ = "item_mods"
 
-    id = Column(Integer, primary_key=True)
-    mod_id = Column(
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    mod_id: Mapped[str] = mapped_column(
         String, nullable=False, unique=True, index=True
     )  # e.g., "Strength1", "IncreasedLife1"
-    generation_type = Column(
+    generation_type: Mapped[int] = mapped_column(
         Integer, nullable=False, index=True
     )  # 1=prefix, 2=suffix, 3=implicit, 5=corrupted
-    generation_type_name = Column(String)  # "PREFIX", "SUFFIX", "IMPLICIT", "CORRUPTED"
-    domain_flag = Column(Integer)  # Domain flag from .datc64
-    level_requirement = Column(Integer, index=True)  # Minimum item level required
-    mod_group = Column(String, index=True)  # For exclusivity checking (derived from mod_id base)
-    tier = Column(Integer)  # Quality tier (derived from numeric suffix in mod_id)
-    min_value = Column(Integer)  # Minimum roll value
-    max_value = Column(Integer)  # Maximum roll value
-    stats = Column(JSON)  # Array of stat modifications with slot/index/value
-    strings = Column(JSON)  # String data including display names
-    row_index = Column(Integer)  # Original row index in .datc64 file
-    created_at = Column(DateTime, default=datetime.utcnow)
+    generation_type_name: Mapped[Optional[str]] = mapped_column(
+        String
+    )  # "PREFIX", "SUFFIX", "IMPLICIT", "CORRUPTED"
+    domain_flag: Mapped[Optional[int]] = mapped_column(Integer)  # Domain flag from .datc64
+    level_requirement: Mapped[Optional[int]] = mapped_column(
+        Integer, index=True
+    )  # Minimum item level required
+    mod_group: Mapped[Optional[str]] = mapped_column(
+        String, index=True
+    )  # For exclusivity checking (derived from mod_id base)
+    tier: Mapped[Optional[int]] = mapped_column(
+        Integer
+    )  # Quality tier (derived from numeric suffix in mod_id)
+    min_value: Mapped[Optional[int]] = mapped_column(Integer)  # Minimum roll value
+    max_value: Mapped[Optional[int]] = mapped_column(Integer)  # Maximum roll value
+    stats: Mapped[Optional[Any]] = mapped_column(
+        JSON
+    )  # Array of stat modifications with slot/index/value
+    strings: Mapped[Optional[Any]] = mapped_column(JSON)  # String data including display names
+    row_index: Mapped[Optional[int]] = mapped_column(Integer)  # Original row index in .datc64 file
+    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.utcnow)
 
 
 class GameDataVersion(Base):
@@ -203,8 +244,8 @@ class GameDataVersion(Base):
 
     __tablename__ = "game_data_version"
 
-    id = Column(Integer, primary_key=True)
-    data_source = Column(String, nullable=False)  # poe2db, official_api, etc.
-    version = Column(String)
-    last_updated = Column(DateTime, default=datetime.utcnow)
-    data_hash = Column(String)  # Hash of data to detect changes
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    data_source: Mapped[str] = mapped_column(String, nullable=False)  # poe2db, official_api, etc.
+    version: Mapped[Optional[str]] = mapped_column(String)
+    last_updated: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.utcnow)
+    data_hash: Mapped[Optional[str]] = mapped_column(String)  # Hash of data to detect changes

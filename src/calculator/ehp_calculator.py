@@ -662,7 +662,7 @@ class EHPCalculator:
         current_ehp = self.calculate_all_ehp(current_stats, threat)
         upgraded_ehp = self.calculate_all_ehp(upgraded_stats, threat)
 
-        comparison = {}
+        comparison: Dict[str, Any] = {}
         for damage_type in DamageType:
             current = current_ehp[damage_type]
             upgraded = upgraded_ehp[damage_type]
@@ -708,7 +708,7 @@ class EHPCalculator:
         increase_amount: float,
         threat: ThreatProfile,
         target_damage_type: Optional[DamageType] = None,
-    ) -> Dict[str, float]:
+    ) -> Dict[str, Any]:
         """
         Calculate how much EHP gain you'd get from increasing a specific defense.
 
@@ -771,7 +771,7 @@ class EHPCalculator:
         comparison = self.compare_upgrade(stats, upgraded, threat)
 
         # Format result
-        result = {
+        result: Dict[str, Any] = {
             "defense_type": defense_type,
             "increase_amount": increase_amount,
         }
@@ -1067,19 +1067,19 @@ if __name__ == "__main__":
 
     print("\nOption A: +3000 Armor")
     comparison_a = calc.compare_upgrade(current, option_a, threat)
-    for damage_type in ["physical", "fire"]:
-        data = comparison_a[damage_type]
+    for type_name in ["physical", "fire"]:
+        data = comparison_a[type_name]
         print(
-            f"  {damage_type.upper()}: {data['current_ehp']:.0f} -> {data['upgraded_ehp']:.0f} "
+            f"  {type_name.upper()}: {data['current_ehp']:.0f} -> {data['upgraded_ehp']:.0f} "
             f"(+{data['absolute_gain']:.0f}, +{data['percent_gain']:.1f}%)"
         )
 
     print("\nOption B: Fire Res 70% -> 75%")
     comparison_b = calc.compare_upgrade(current, option_b, threat)
-    for damage_type in ["physical", "fire"]:
-        data = comparison_b[damage_type]
+    for type_name in ["physical", "fire"]:
+        data = comparison_b[type_name]
         print(
-            f"  {damage_type.upper()}: {data['current_ehp']:.0f} -> {data['upgraded_ehp']:.0f} "
+            f"  {type_name.upper()}: {data['current_ehp']:.0f} -> {data['upgraded_ehp']:.0f} "
             f"(+{data['absolute_gain']:.0f}, +{data['percent_gain']:.1f}%)"
         )
 

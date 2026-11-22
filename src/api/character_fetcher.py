@@ -211,7 +211,7 @@ class CharacterFetcher:
                     # Try to parse any character data we can find
                     soup = BeautifulSoup(response.text, "html.parser")
 
-                    char_data = {
+                    char_data: Dict[str, Any] = {
                         "name": character_name,
                         "account": account_name,
                         "class": "Unknown",
@@ -277,7 +277,7 @@ class CharacterFetcher:
 
         # Check cache
         if self.cache_manager:
-            cached_data = await self.cache_manager.get(cache_key)
+            cached_data: Optional[Dict[str, Any]] = await self.cache_manager.get(cache_key)
             if cached_data:
                 logger.info(f"Cache hit for character {character_name}")
                 return cached_data
@@ -485,7 +485,7 @@ class CharacterFetcher:
         cache_key = f"ladder_char:{api_league}:{character_name}"
 
         if self.cache_manager:
-            cached_data = await self.cache_manager.get(cache_key)
+            cached_data: Optional[Dict[str, Any]] = await self.cache_manager.get(cache_key)
             if cached_data:
                 return cached_data
 
@@ -565,13 +565,13 @@ class CharacterFetcher:
         cache_key = f"top_ladder:{api_league}:{limit}:{min_level}:{class_filter}"
 
         if self.cache_manager:
-            cached = await self.cache_manager.get(cache_key)
+            cached: Optional[List[Dict[str, Any]]] = await self.cache_manager.get(cache_key)
             if cached:
                 return cached
 
         try:
             base_url = f"{settings.POE_OFFICIAL_API}/ladders/{api_league}"
-            top_characters = []
+            top_characters: List[Dict[str, Any]] = []
 
             # Fetch ladder pages until we have enough characters
             offset = 0

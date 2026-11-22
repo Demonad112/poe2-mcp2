@@ -366,7 +366,8 @@ class TinyMT32:
         Returns:
             Tuple of (counter, state1, state2, state3, state4)
         """
-        return tuple(self._state)
+        c, s1, s2, s3, s4 = self._state
+        return (c, s1, s2, s3, s4)
 
     def __repr__(self) -> str:
         return f"TinyMT32(state={self._state})"
@@ -415,7 +416,7 @@ def create_timeless_rng(node_id: int, jewel_seed: int) -> TinyMT32:
 
 # Test vectors for validation
 # These can be used to verify the implementation matches PoE's behavior
-TEST_VECTORS = [
+TEST_VECTORS: List[Tuple[int, int, List[int]]] = [
     # (node_id, jewel_seed, expected_first_values)
     # TODO: Add verified test vectors from in-game testing
 ]

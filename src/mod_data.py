@@ -39,7 +39,7 @@ def resolve_stat_id(
         return None
     inline = stat_entry.get("stat_id")
     if inline:
-        return inline
+        return str(inline)
     if stat_lookup is not None:
         sk = stat_entry.get("stat_key")
         if sk is not None and sk in stat_lookup:

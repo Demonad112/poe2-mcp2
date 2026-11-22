@@ -410,7 +410,7 @@ class WeaknessDetector:
 
     def _detect_spirit_issues(self, char_data: CharacterData) -> List[Weakness]:
         """Detect Spirit system weaknesses."""
-        weaknesses = []
+        weaknesses: List[Weakness] = []
 
         # Only check if character uses Spirit
         if char_data.spirit_max == 0:
@@ -665,7 +665,7 @@ class WeaknessDetector:
             ]
 
         # Group by severity
-        by_severity = {}
+        by_severity: Dict[Any, List[Weakness]] = {}
         for weakness in weaknesses:
             if weakness.severity not in by_severity:
                 by_severity[weakness.severity] = []

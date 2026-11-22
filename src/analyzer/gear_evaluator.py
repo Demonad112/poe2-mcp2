@@ -430,7 +430,7 @@ class GearEvaluator:
         current_stats: Dict[str, Any],
         upgrade_stats: Dict[str, Any],
         skill_config: Optional[Any],
-    ) -> Dict[str, float]:
+    ) -> Dict[str, Any]:
         """
         Calculate DPS changes.
 
@@ -508,7 +508,7 @@ class GearEvaluator:
 
         # Final DPS = avg_damage × crit_multiplier × attack_speed
         # Using 1.0 attack speed as baseline
-        return avg_damage * crit_multiplier * 1.0
+        return float(avg_damage * crit_multiplier * 1.0)
 
     def _check_upgrade_warnings(
         self,

@@ -18,7 +18,7 @@ import logging
 from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -180,7 +180,7 @@ class PassiveTreeResolver:
     #
     # NOTE: Multiple classes share the same region when they share the same starting position.
     # E.g., Ranger and Huntress both use the RANGER region, Sorceress and Witch both use SORCERESS.
-    TREE_REGIONS = {
+    TREE_REGIONS: Dict[str, Dict[str, Any]] = {
         "MONK": {
             "x_range": (1270.4, 17657.2),
             "y_range": (-10429.8, -82.2),
@@ -227,7 +227,7 @@ class PassiveTreeResolver:
 
     # Alias regions for classes that share positions
     # These map the alternate class name to the canonical region
-    REGION_ALIASES = {
+    REGION_ALIASES: Dict[str, str] = {
         "HUNTRESS": "RANGER",  # Huntress (DEX) shares Ranger's region
         "WITCH": "SORCERESS",  # Witch (INT) shares Sorceress's region
     }
@@ -530,7 +530,7 @@ class PassiveTreeResolver:
         # BFS from all starting nodes simultaneously
         visited = set(from_nodes)
         queue = deque([(nid, 0) for nid in from_nodes if nid in self._adjacency])
-        found = []
+        found: List[Tuple[ResolvedNode, int]] = []
 
         while queue and len(found) < limit:
             current, dist = queue.popleft()
@@ -672,16 +672,18 @@ class PassiveTreeResolver:
     def get_all_notables(self) -> List[ResolvedNode]:
         """Return all notable nodes."""
         self._ensure_loaded()
-        return [
+        resolved = (
             self.resolve(nid) for nid in self._nodes if self._nodes[nid].get("is_notable", False)
-        ]
+        )
+        return [n for n in resolved if n is not None]
 
     def get_all_keystones(self) -> List[ResolvedNode]:
         """Return all keystone nodes."""
         self._ensure_loaded()
-        return [
+        resolved = (
             self.resolve(nid) for nid in self._nodes if self._nodes[nid].get("is_keystone", False)
-        ]
+        )
+        return [n for n in resolved if n is not None]
 
     def estimate_tree_region(self, nodes: List[ResolvedNode]) -> Optional[str]:
         """

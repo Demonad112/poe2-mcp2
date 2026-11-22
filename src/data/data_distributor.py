@@ -31,7 +31,7 @@ import tempfile
 import urllib.request
 import zipfile
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +53,8 @@ def get_local_data_version() -> Optional[Dict[str, Any]]:
     if not _VERSION_FILE.exists():
         return None
     try:
-        return json.loads(_VERSION_FILE.read_text(encoding="utf-8"))
+        version: Dict[str, Any] = json.loads(_VERSION_FILE.read_text(encoding="utf-8"))
+        return version
     except (OSError, json.JSONDecodeError) as e:
         logger.warning("Failed to read local data version: %s", e)
         return None
@@ -74,7 +75,7 @@ def get_latest_release_info() -> Optional[Dict[str, Any]]:
             },
         )
         with urllib.request.urlopen(req, timeout=10) as r:
-            releases = json.loads(r.read())
+            releases: List[Dict[str, Any]] = json.loads(r.read())
     except Exception as e:
         logger.warning("Failed to query GitHub Releases: %s", e)
         return None
@@ -93,7 +94,8 @@ def find_bundle_asset(release: Dict[str, Any]) -> Optional[str]:
     """Return the download URL for the data bundle asset in a release."""
     for asset in release.get("assets", []):
         if asset.get("name") == BUNDLE_ASSET_NAME:
-            return asset.get("browser_download_url")
+            url: Optional[str] = asset.get("browser_download_url")
+            return url
     return None
 
 
@@ -106,18 +108,18 @@ def needs_update() -> Tuple[bool, str]:
     local = get_local_data_version()
     remote = get_latest_release_info()
 
-    if not local and remote:
-        return (
-            True,
-            f"no local data/version.json (fresh install) — latest is {remote.get('tag_name')}",
-        )
-    if not local and not remote:
+    if not local:
+        if remote:
+            return (
+                True,
+                f"no local data/version.json (fresh install) — latest is {remote.get('tag_name')}",
+            )
         # Project hasn't published any data-* releases yet; nothing to do
         return (
             False,
             "no local data/version.json and no data-* releases published yet — using whatever is in data/",
         )
-    if local and not remote:
+    if not remote:
         return (
             False,
             f"keeping local data {local.get('release_tag', '?')!r} (no newer data-* release found upstream)",

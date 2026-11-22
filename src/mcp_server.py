@@ -9,7 +9,7 @@ import json
 import logging
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Awaitable, Callable, Dict, List, Optional, TypeVar
 
 # Add parent directory to path for imports when run directly
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -18,6 +18,7 @@ import mcp.server.stdio
 import mcp.types as types
 from mcp.server import NotificationOptions, Server
 from mcp.server.models import InitializationOptions
+from pydantic import AnyUrl
 
 # Import with fallback for both direct and module execution
 try:
@@ -114,6 +115,20 @@ logging.basicConfig(
     ],
 )
 logger = logging.getLogger(__name__)
+
+
+_T = TypeVar("_T")
+
+
+def _require(component: Optional[_T], name: str) -> _T:
+    """Return an initialized server component, or raise a clear error.
+
+    Components start as None and are set by ``initialize()``; if that failed
+    part-way, handlers get this message (caught by their error handling)
+    instead of an opaque ``'NoneType' object has no attribute`` error."""
+    if component is None:
+        raise RuntimeError(f"{name} is not initialized (server initialization incomplete)")
+    return component
 
 
 # Also log to stderr directly for immediate visibility
@@ -243,7 +258,7 @@ class PoE2BuildOptimizerMCP:
         self.pob_importer: Optional[PoBImporter] = None
         self.pob_exporter: Optional[PoBExporter] = None
         # Live PoB bridge client (lazy — only built when a pob_* tool is called)
-        self.pob_client = None
+        self.pob_client: Optional[Any] = None  # PoBClient, imported lazily
 
         # Passive Tree Resolver (for poe.ninja node ID resolution)
         self.passive_tree_resolver: Optional[PassiveTreeResolver] = None
@@ -1849,19 +1864,19 @@ class PoE2BuildOptimizerMCP:
             """List available resources"""
             return [
                 types.Resource(
-                    uri="poe2://game-data/items",
+                    uri=AnyUrl("poe2://game-data/items"),
                     name="Item Database",
                     description="Complete PoE2 item database",
                     mimeType="application/json",
                 ),
                 types.Resource(
-                    uri="poe2://game-data/passives",
+                    uri=AnyUrl("poe2://game-data/passives"),
                     name="Passive Tree",
                     description="Complete passive skill tree data",
                     mimeType="application/json",
                 ),
                 types.Resource(
-                    uri="poe2://game-data/skills",
+                    uri=AnyUrl("poe2://game-data/skills"),
                     name="Skill Gems",
                     description="All skill gem data",
                     mimeType="application/json",
@@ -1872,13 +1887,13 @@ class PoE2BuildOptimizerMCP:
         async def handle_read_resource(uri: str) -> str:
             """Read resource data"""
             if uri == "poe2://game-data/items":
-                items = await self.db_manager.get_all_items()
+                items = await _require(self.db_manager, "db_manager").get_all_items()
                 return json.dumps(items, indent=2)
             elif uri == "poe2://game-data/passives":
-                passives = await self.db_manager.get_passive_tree()
+                passives = await _require(self.db_manager, "db_manager").get_passive_tree()
                 return json.dumps(passives, indent=2)
             elif uri == "poe2://game-data/skills":
-                skills = await self.db_manager.get_all_skills()
+                skills = await _require(self.db_manager, "db_manager").get_all_skills()
                 return json.dumps(skills, indent=2)
             else:
                 raise ValueError(f"Unknown resource: {uri}")
@@ -1924,7 +1939,7 @@ class PoE2BuildOptimizerMCP:
 
         try:
             # Fetch character data using the new API-based fetcher
-            character_data = await self.char_fetcher.get_character(
+            character_data = await _require(self.char_fetcher, "char_fetcher").get_character(
                 account_name=account, character_name=character, league=args.get("league", "Abyss")
             )
 
@@ -2205,7 +2220,7 @@ Tracked at https://github.com/HivemindOverlord/poe2-mcp/issues/61.
         goal = args.get("goal", "balanced")
 
         try:
-            recommendations = await self.gear_optimizer.optimize(
+            recommendations = await _require(self.gear_optimizer, "gear_optimizer").optimize(
                 character_data, budget=budget, goal=goal
             )
 
@@ -2224,7 +2239,7 @@ Tracked at https://github.com/HivemindOverlord/poe2-mcp/issues/61.
         goal = args.get("goal", "balanced")
 
         try:
-            recommendations = await self.passive_optimizer.optimize(
+            recommendations = await _require(self.passive_optimizer, "passive_optimizer").optimize(
                 character_data,
                 available_points=available_points,
                 allow_respec=allow_respec,
@@ -2244,7 +2259,9 @@ Tracked at https://github.com/HivemindOverlord/poe2-mcp/issues/61.
         goal = args.get("goal", "balanced")
 
         try:
-            recommendations = await self.skill_optimizer.optimize(character_data, goal=goal)
+            recommendations = await _require(self.skill_optimizer, "skill_optimizer").optimize(
+                character_data, goal=goal
+            )
 
             response = self._format_skill_recommendations(recommendations)
 
@@ -2259,7 +2276,9 @@ Tracked at https://github.com/HivemindOverlord/poe2-mcp/issues/61.
         metrics = args.get("comparison_metrics", ["overall_score", "dps", "defense"])
 
         try:
-            comparison = await self.build_scorer.compare_builds(builds, metrics)
+            comparison = await _require(self.build_scorer, "build_scorer").compare_builds(
+                builds, metrics
+            )
             response = self._format_build_comparison(comparison)
 
             return [types.TextContent(type="text", text=response)]
@@ -2305,7 +2324,7 @@ Tracked at https://github.com/HivemindOverlord/poe2-mcp/issues/61.
                 build_data = await self.pob_importer.import_xml(pob_xml)
                 source = "raw XML"
             else:
-                build_data = await self.pob_importer.import_build(pob_code)
+                build_data = await self.pob_importer.import_build(str(pob_code))
                 source = "share code"
 
             return [
@@ -2344,7 +2363,9 @@ Tracked at https://github.com/HivemindOverlord/poe2-mcp/issues/61.
 
         try:
             # Fetch PoB code from poe.ninja hidden API
-            pob_code = await self.char_fetcher.ninja_api.get_pob_import(account, character)
+            pob_code = await _require(self.char_fetcher, "char_fetcher").ninja_api.get_pob_import(
+                account, character
+            )
 
             if pob_code:
                 # If it's a dict (full API response), try to extract the code
@@ -2662,7 +2683,7 @@ Tracked at https://github.com/HivemindOverlord/poe2-mcp/issues/61.
         filters = args.get("filters", {})
 
         try:
-            items = await self.db_manager.search_items(query, filters)
+            items = await _require(self.db_manager, "db_manager").search_items(query, filters)
 
             if not items:
                 return [types.TextContent(type="text", text=f"No items found matching '{query}'")]
@@ -2725,7 +2746,7 @@ Tracked at https://github.com/HivemindOverlord/poe2-mcp/issues/61.
         try:
             # Fetch user's character
             logger.info(f"Fetching character {character_name} for comparison...")
-            user_character = await self.char_fetcher.get_character(
+            user_character = await _require(self.char_fetcher, "char_fetcher").get_character(
                 account_name, character_name, league
             )
 
@@ -2770,11 +2791,15 @@ poe.ninja migrated their builds/character pages to a client-side rendered SPA at
                 from src.api.poe_ninja_ladder import LadderClient
 
             logger.info("Comparing to top players via ladder search (#61 revival)...")
-            league_slug = self.char_fetcher._to_poe_ninja_league_slug(league)
+            league_slug = _require(self.char_fetcher, "char_fetcher")._to_poe_ninja_league_slug(
+                league
+            )
             # Ladder 'class' filter takes the ascendancy name when ascended
             ladder_class = user_character.get("ascendancy") or user_character.get("class")
 
-            ladder = LadderClient(rate_limiter=self.char_fetcher.rate_limiter)
+            ladder = LadderClient(
+                rate_limiter=_require(self.char_fetcher, "char_fetcher").rate_limiter
+            )
             try:
                 rows = await ladder.top_builds(league_slug, class_name=ladder_class, sort="level")
                 if not rows:
@@ -2943,7 +2968,7 @@ poe.ninja migrated their builds/character pages to a client-side rendered SPA at
                 account = args["account"]
                 character = args["character"]
 
-                character_data = await self.char_fetcher.get_character(
+                character_data = await _require(self.char_fetcher, "char_fetcher").get_character(
                     account_name=account,
                     character_name=character,
                     league=args.get("league", "Abyss"),
@@ -3105,7 +3130,7 @@ Consider:
                 account = args["account"]
                 character = args["character"]
 
-                character_data = await self.char_fetcher.get_character(
+                character_data = await _require(self.char_fetcher, "char_fetcher").get_character(
                     account_name=account,
                     character_name=character,
                     league=args.get("league", "Abyss"),
@@ -3197,7 +3222,7 @@ Consider:
                 account = args["account"]
                 character = args["character"]
 
-                character_data = await self.char_fetcher.get_character(
+                character_data = await _require(self.char_fetcher, "char_fetcher").get_character(
                     account_name=account,
                     character_name=character,
                     league=args.get("league", "Abyss"),
@@ -3270,7 +3295,7 @@ Consider:
                 account = args["account"]
                 character = args["character"]
 
-                character_data = await self.char_fetcher.get_character(
+                character_data = await _require(self.char_fetcher, "char_fetcher").get_character(
                     account_name=account,
                     character_name=character,
                     league=args.get("league", "Abyss"),
@@ -3361,7 +3386,7 @@ Consider:
                 account = args["account"]
                 character = args["character"]
 
-                character_data = await self.char_fetcher.get_character(
+                character_data = await _require(self.char_fetcher, "char_fetcher").get_character(
                     account_name=account,
                     character_name=character,
                     league=args.get("league", "Abyss"),
@@ -3859,7 +3884,7 @@ Consider:
             try:
                 from src.data import update_manager as um
             except ImportError:
-                from data import update_manager as um  # direct-exec fallback
+                from .data import update_manager as um  # package-relative fallback
 
             # Network + git calls are blocking; keep the event loop responsive.
             status = await asyncio.to_thread(um.get_update_status, True)
@@ -4130,7 +4155,9 @@ Consider:
             )
 
             # Find best combinations
-            results = self.gem_synergy_calculator.find_best_combinations(
+            results = _require(
+                self.gem_synergy_calculator, "gem_synergy_calculator"
+            ).find_best_combinations(
                 spell_name=spell_name.lower(),
                 max_spirit=max_spirit,
                 num_supports=num_supports,
@@ -4154,7 +4181,9 @@ Consider:
             response += "---\n\n"
 
             for i, result in enumerate(results, 1):
-                response += self.gem_synergy_calculator.format_result(result, detailed=(i == 1))
+                response += _require(
+                    self.gem_synergy_calculator, "gem_synergy_calculator"
+                ).format_result(result, detailed=(i == 1))
                 if i < len(results):
                     response += "\n---\n\n"
 
@@ -4292,19 +4321,9 @@ Consider:
                     "Cross-reference against the in-game tooltip for "
                     "balance-sensitive numbers.\n\n"
                 )
-                response += self.mechanics_kb.format_mechanic_explanation(mechanic)
-
-                try:
-                    official_strings = await self.mechanics_kb.get_official_terminology(
-                        mechanic.name
-                    )
-                    if official_strings:
-                        official_text = self.mechanics_kb.enhance_explanation_with_official_text(
-                            mechanic, official_strings
-                        )
-                        response += official_text
-                except Exception as e:
-                    logger.debug(f"Could not fetch official terminology: {e}")
+                response += _require(self.mechanics_kb, "mechanics_kb").format_mechanic_explanation(
+                    mechanic
+                )
 
                 # If the query also matches stat_ids in Tier 1, surface them as
                 # cross-refs so users can see the canonical entries
@@ -4522,7 +4541,12 @@ Consider:
         "SpiritReserved",
     ]
 
-    async def _route_headless_first(self, args: dict, fields: list, python_fn):
+    async def _route_headless_first(
+        self,
+        args: dict,
+        fields: list,
+        python_fn: Callable[[dict], Awaitable[List[types.TextContent]]],
+    ) -> List[types.TextContent]:
         """Use the PoB-exact headless engine when it is ready and a build file is supplied;
         otherwise fall back to the Python calculator, labelled approximate."""
         try:
@@ -4537,7 +4561,7 @@ Consider:
             try:
                 ready = bool(headless.find_environment().get("ready"))
                 if ready:
-                    raw = Path(path).read_text(encoding="utf-8") if path else inline_code
+                    raw = Path(path).read_text(encoding="utf-8") if path else str(inline_code)
                     res = await asyncio.to_thread(
                         headless.calc,
                         raw,
@@ -4572,8 +4596,8 @@ Consider:
             return text
         if not isinstance(data, dict):
             return text
-        stats = (
-            data.get("stats")
+        stats: Dict[str, Any] = (
+            data["stats"]
             if isinstance(data.get("stats"), dict)
             else {k: v for k, v in data.items() if isinstance(v, (int, float, str))}
         )
@@ -5279,12 +5303,12 @@ Consider:
             debug_log(f"Comparing items (goal: {build_goal})")
 
             # Compare items
-            report = self.gear_comparator.compare_items(
+            report = _require(self.gear_comparator, "gear_comparator").compare_items(
                 item_a=item_a, item_b=item_b, character_data=character_data, build_goal=build_goal
             )
 
             # Format response
-            response = self.gear_comparator.format_full_report(report)
+            response = _require(self.gear_comparator, "gear_comparator").format_full_report(report)
 
             logger.info(
                 f"Compared items: {item_a.get('name', 'Item A')} vs {item_b.get('name', 'Item B')}"
@@ -5307,12 +5331,14 @@ Consider:
             debug_log(f"Analyzing damage scaling (skill_type: {skill_type})")
 
             # Analyze scaling
-            recommendations = self.damage_scaling_analyzer.analyze_scaling(
-                character_data=character_data, skill_type=skill_type
-            )
+            recommendations = _require(
+                self.damage_scaling_analyzer, "damage_scaling_analyzer"
+            ).analyze_scaling(character_data=character_data, skill_type=skill_type)
 
             # Format response
-            response = self.damage_scaling_analyzer.format_recommendations(recommendations)
+            response = _require(
+                self.damage_scaling_analyzer, "damage_scaling_analyzer"
+            ).format_recommendations(recommendations)
 
             logger.info(f"Analyzed damage scaling for {skill_type}")
             return [types.TextContent(type="text", text=response)]
@@ -5339,12 +5365,14 @@ Consider:
             debug_log(f"Checking content readiness for: {content}")
 
             # Check readiness
-            report = self.content_readiness_checker.check_readiness(
-                character_data=character_data, content=content
-            )
+            report = _require(
+                self.content_readiness_checker, "content_readiness_checker"
+            ).check_readiness(character_data=character_data, content=content)
 
             # Format response
-            response = self.content_readiness_checker.format_report(report)
+            response = _require(
+                self.content_readiness_checker, "content_readiness_checker"
+            ).format_report(report)
 
             logger.info(f"Content readiness check: {content} - {report.readiness.value}")
             return [types.TextContent(type="text", text=response)]
@@ -5545,9 +5573,9 @@ Consider:
                 ]
 
             # Use gem synergy calculator's validation method
-            result = self.gem_synergy_calculator.validate_combination(
-                support_gems, spell_name=spell_name
-            )
+            result = _require(
+                self.gem_synergy_calculator, "gem_synergy_calculator"
+            ).validate_combination(support_gems, spell_name=spell_name)
 
             if result["valid"]:
                 response = f"Valid combination: {', '.join(support_gems)}\n\n"
@@ -6570,7 +6598,9 @@ Consider:
                 return [types.TextContent(type="text", text="Error: spell_name is required")]
 
             # Call with trace enabled
-            result = self.gem_synergy_calculator.find_best_combinations(
+            result = _require(
+                self.gem_synergy_calculator, "gem_synergy_calculator"
+            ).find_best_combinations(
                 spell_name=spell_name,
                 max_spirit=max_spirit,
                 num_supports=num_supports,
@@ -6635,7 +6665,9 @@ Consider:
                 return [types.TextContent(type="text", text="Error: support_gems list is required")]
 
             # Get trace
-            trace = self.gem_synergy_calculator.trace_dps_calculation(
+            trace = _require(
+                self.gem_synergy_calculator, "gem_synergy_calculator"
+            ).trace_dps_calculation(
                 spell_name=spell_name,
                 support_names=support_gems,
                 character_mods=character_mods,
@@ -6746,7 +6778,7 @@ Consider:
         if path or inline:
             try:
                 if headless.find_environment().get("ready"):
-                    raw = Path(path).read_text(encoding="utf-8") if path else inline
+                    raw = Path(path).read_text(encoding="utf-8") if path else str(inline)
                     res = await asyncio.to_thread(
                         headless.calc,
                         raw,
@@ -7139,7 +7171,7 @@ Consider:
 
             response += f"\n## Small Nodes ({len(analysis.small_nodes)})\n"
             # Group small nodes by name
-            small_by_name = {}
+            small_by_name: Dict[str, List[Any]] = {}
             for node in analysis.small_nodes:
                 small_by_name.setdefault(node.name, []).append(node)
 
@@ -7610,7 +7642,7 @@ Could not extract account and character from URL.
                 # search_items) so the tool works instead of returning nothing.
                 source_label = "items database (db_manager)"
                 try:
-                    db_items = await self.db_manager.get_all_items()
+                    db_items = await _require(self.db_manager, "db_manager").get_all_items()
                 except Exception as e:
                     db_items = []
                     logger.warning(f"Base-item DB fallback failed: {e}")
@@ -7703,7 +7735,9 @@ Could not extract account and character from URL.
             # tool returns real data with correct display names.
             if not found:
                 try:
-                    db_matches = await self.db_manager.search_items(item_name)
+                    db_matches = await _require(self.db_manager, "db_manager").search_items(
+                        item_name
+                    )
                 except Exception as e:
                     db_matches = []
                     logger.warning(f"Base-item DB fallback failed: {e}")
@@ -8242,7 +8276,7 @@ Could not extract account and character from URL.
                 pass
 
             # Check mod family conflicts (can't have 2 tiers of same mod family)
-            families_seen = {}
+            families_seen: Dict[str, str] = {}
             for mod in found_mods:
                 mod_id = mod.get("mod_id", "")
                 # Extract family by removing trailing digits
@@ -8450,7 +8484,7 @@ Could not extract account and character from URL.
             available_mods.sort(key=lambda m: m.get("level_requirement", 0))
 
             # Group by mod family for better presentation
-            families = {}
+            families: Dict[str, List[Any]] = {}
             for mod in available_mods:
                 mod_id = mod.get("mod_id", "")
                 family = mod_id.rstrip("0123456789")
@@ -8836,7 +8870,7 @@ Could not extract account and character from URL.
         ]
 
         # Group items by slot
-        by_slot = {}
+        by_slot: Dict[str, List[Any]] = {}
         for item in active_items:
             # `or` (not .get default): cached/older records carry an explicit
             # slot: null, which .get's default does not cover

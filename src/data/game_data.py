@@ -13,8 +13,11 @@ See `data/game/README.md` for the layout, lifecycle, and data policy.
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
+
+logger = logging.getLogger(__name__)
 
 _BASE_DIR = Path(__file__).resolve().parent.parent.parent
 GAME_DATA_DIR = _BASE_DIR / "data" / "game"
@@ -52,12 +55,18 @@ STAT_DESCRIPTIONS_INDEX = STAT_DESCRIPTIONS_DIR / "index.json"
 STAT_DESCRIPTIONS_META = STAT_DESCRIPTIONS_DIR / "metadata.json"
 
 
+def _read_json_dict(path: Path) -> Dict[str, Any]:
+    """Read a JSON file whose top level is an object."""
+    data: Dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
+    return data
+
+
 def get_version() -> Optional[Dict[str, Any]]:
     """Return the parsed contents of data/game/version.json, or None if missing."""
     if not VERSION_JSON.exists():
         return None
     try:
-        return json.loads(VERSION_JSON.read_text(encoding="utf-8"))
+        return _read_json_dict(VERSION_JSON)
     except (OSError, json.JSONDecodeError):
         return None
 
@@ -66,28 +75,28 @@ def load_mods() -> Optional[Dict[str, Any]]:
     """Load and return the canonical mods dataset, or None if missing."""
     if not MODS_JSON.exists():
         return None
-    return json.loads(MODS_JSON.read_text(encoding="utf-8"))
+    return _read_json_dict(MODS_JSON)
 
 
 def load_passive_tree() -> Optional[Dict[str, Any]]:
     """Load and return the canonical passive tree dataset, or None if missing."""
     if not PASSIVE_TREE_JSON.exists():
         return None
-    return json.loads(PASSIVE_TREE_JSON.read_text(encoding="utf-8"))
+    return _read_json_dict(PASSIVE_TREE_JSON)
 
 
 def load_support_gems() -> Optional[Dict[str, Any]]:
     """Load and return the canonical support gems dataset, or None if missing."""
     if not SUPPORT_GEMS_JSON.exists():
         return None
-    return json.loads(SUPPORT_GEMS_JSON.read_text(encoding="utf-8"))
+    return _read_json_dict(SUPPORT_GEMS_JSON)
 
 
 def load_ascendancies() -> Optional[Dict[str, Any]]:
     """Load and return the canonical ascendancies dataset, or None if missing."""
     if not ASCENDANCIES_JSON.exists():
         return None
-    return json.loads(ASCENDANCIES_JSON.read_text(encoding="utf-8"))
+    return _read_json_dict(ASCENDANCIES_JSON)
 
 
 def load_stats() -> Optional[Dict[int, str]]:
@@ -201,7 +210,7 @@ def find_mods_by_display_name(display_name_fragment: str, limit: int = 50) -> li
     return out[:limit]
 
 
-def get_keystones() -> list:
+def get_keystones() -> List[Dict[str, Any]]:
     """Return all keystone nodes from the passive tree.
 
     Each entry includes id, name, stats, and other passive-tree-node fields.
@@ -213,7 +222,7 @@ def get_keystones() -> list:
     return [n for n in payload.get("nodes", {}).values() if n.get("is_keystone")]
 
 
-def get_notables() -> list:
+def get_notables() -> List[Dict[str, Any]]:
     """Return all notable nodes from the passive tree (excluding keystones)."""
     payload = load_passive_tree()
     if not payload:
@@ -260,10 +269,9 @@ def load_stat_descriptions_index() -> Optional[Dict[str, Any]]:
     if not STAT_DESCRIPTIONS_INDEX.exists():
         return None
     if "_index" not in _STAT_DESCRIPTIONS_CACHE:
-        _STAT_DESCRIPTIONS_CACHE["_index"] = json.loads(
-            STAT_DESCRIPTIONS_INDEX.read_text(encoding="utf-8")
-        )
-    return _STAT_DESCRIPTIONS_CACHE["_index"]
+        _STAT_DESCRIPTIONS_CACHE["_index"] = _read_json_dict(STAT_DESCRIPTIONS_INDEX)
+    index: Dict[str, Any] = _STAT_DESCRIPTIONS_CACHE["_index"]
+    return index
 
 
 def load_stat_descriptions_file(json_filename: str) -> Optional[Dict[str, Any]]:
@@ -279,8 +287,9 @@ def load_stat_descriptions_file(json_filename: str) -> Optional[Dict[str, Any]]:
         return None
     cache_key = f"file:{json_filename}"
     if cache_key not in _STAT_DESCRIPTIONS_CACHE:
-        _STAT_DESCRIPTIONS_CACHE[cache_key] = json.loads(path.read_text(encoding="utf-8"))
-    return _STAT_DESCRIPTIONS_CACHE[cache_key]
+        _STAT_DESCRIPTIONS_CACHE[cache_key] = _read_json_dict(path)
+    cached: Dict[str, Any] = _STAT_DESCRIPTIONS_CACHE[cache_key]
+    return cached
 
 
 def find_stat_description(stat_id: str) -> Optional[Dict[str, Any]]:
@@ -476,7 +485,7 @@ def load_metadata(dataset_dir: Path) -> Optional[Dict[str, Any]]:
     if not meta.exists():
         return None
     try:
-        return json.loads(meta.read_text(encoding="utf-8"))
+        return _read_json_dict(meta)
     except (OSError, json.JSONDecodeError):
         return None
 

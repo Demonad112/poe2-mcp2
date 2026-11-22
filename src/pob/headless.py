@@ -216,7 +216,7 @@ class HeadlessPoB:
     def __init__(self, startup_timeout: float = 120.0, call_timeout: float = 60.0):
         self.startup_timeout = startup_timeout
         self.call_timeout = call_timeout
-        self.proc: Optional[subprocess.Popen] = None
+        self.proc: Optional["subprocess.Popen[str]"] = None
         self._lock = threading.Lock()
 
     def start(self) -> None:
@@ -246,19 +246,25 @@ class HeadlessPoB:
 
     def _readline(self, timeout: float) -> Optional[Dict[str, Any]]:
         box: List[Optional[str]] = []
-        t = threading.Thread(target=lambda: box.append(self.proc.stdout.readline()), daemon=True)
+        proc = self.proc
+        if proc is None or proc.stdout is None:
+            return None
+        stdout = proc.stdout
+        t = threading.Thread(target=lambda: box.append(stdout.readline()), daemon=True)
         t.start()
         t.join(timeout)
         if t.is_alive() or not box or not box[0]:
             return None
-        return json.loads(box[0])
+        parsed: Dict[str, Any] = json.loads(box[0])
+        return parsed
 
     def call(self, action: str, **params: Any) -> Dict[str, Any]:
-        if self.proc is None or self.proc.poll() is not None:
+        proc = self.proc
+        if proc is None or proc.poll() is not None or proc.stdin is None:
             raise HeadlessPoBError("bridge process is not running")
         with self._lock:
-            self.proc.stdin.write(json.dumps({"action": action, "params": params}) + "\n")
-            self.proc.stdin.flush()
+            proc.stdin.write(json.dumps({"action": action, "params": params}) + "\n")
+            proc.stdin.flush()
             reply = self._readline(self.call_timeout)
         if reply is None:
             self.close()
@@ -272,13 +278,15 @@ class HeadlessPoB:
 
     def get_skill_table(self) -> List[Dict[str, Any]]:
         """Per enabled socket group: offence keys + damage-type split (bridge ``get_skill_table``)."""
-        return self.call("get_skill_table").get("skills", [])
+        skills: List[Dict[str, Any]] = self.call("get_skill_table").get("skills", [])
+        return skills
 
     def close(self) -> None:
         if self.proc and self.proc.poll() is None:
             try:
-                self.proc.stdin.write('{"action":"quit"}\n')
-                self.proc.stdin.flush()
+                if self.proc.stdin is not None:
+                    self.proc.stdin.write('{"action":"quit"}\n')
+                    self.proc.stdin.flush()
                 self.proc.wait(timeout=3)
             except Exception:
                 self.proc.kill()

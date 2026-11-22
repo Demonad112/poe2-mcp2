@@ -7,6 +7,7 @@ import logging
 from typing import Any, Dict, Optional
 
 from anthropic import AsyncAnthropic
+from anthropic.types import TextBlock
 
 try:
     from ..config import settings
@@ -20,6 +21,7 @@ class QueryHandler:
     """Handles natural language queries about builds"""
 
     def __init__(self) -> None:
+        self.client: Optional[AsyncAnthropic]
         if not settings.ANTHROPIC_API_KEY:
             logger.warning("Anthropic API key not set. AI features will be limited.")
             self.client = None
@@ -54,15 +56,18 @@ Focus on practical recommendations that can be implemented immediately."""
                 user_message += f"\n\nCharacter Context:\n{character_context}"
 
             # Call Claude
+            extra_body: Optional[Dict[str, Any]] = None
+            if settings.AI_TEMPERATURE is not None:
+                extra_body = {"temperature": settings.AI_TEMPERATURE}
             response = await self.client.messages.create(
                 model=settings.AI_MODEL,
                 max_tokens=settings.AI_MAX_TOKENS,
-                temperature=settings.AI_TEMPERATURE,
                 system=system_prompt,
                 messages=[{"role": "user", "content": user_message}],
+                extra_body=extra_body,
             )
 
-            return response.content[0].text
+            return "".join(b.text for b in response.content if isinstance(b, TextBlock))
 
         except Exception as e:
             logger.error(f"AI query failed: {e}")

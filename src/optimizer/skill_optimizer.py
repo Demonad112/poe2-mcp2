@@ -22,9 +22,9 @@ class SkillOptimizer:
 
     def __init__(self, db_manager) -> None:
         self.db_manager = db_manager
-        self._support_gems_cache = None
-        self._spell_gems_cache = None
-        self._pob_skills_cache = None
+        self._support_gems_cache: Optional[Dict[str, Any]] = None
+        self._spell_gems_cache: Optional[Dict[str, Any]] = None
+        self._pob_skills_cache: Optional[Dict[str, Any]] = None
         self._fresh_provider = get_fresh_data_provider()
 
     async def _load_support_gems(self) -> Dict[str, Any]:
@@ -36,8 +36,9 @@ class SkillOptimizer:
             support_gems_path = DATA_DIR / "poe2_support_gems_database.json"
             with open(support_gems_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                self._support_gems_cache = data.get("support_gems", {})
-                return self._support_gems_cache
+                support_gems: Dict[str, Any] = data.get("support_gems", {})
+                self._support_gems_cache = support_gems
+                return support_gems
         except Exception as e:
             logger.error(f"Failed to load support gems database: {e}")
             return {}
@@ -51,8 +52,9 @@ class SkillOptimizer:
             pob_skills_path = DATA_DIR / "pob_complete_skills.json"
             with open(pob_skills_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                self._pob_skills_cache = data.get("skills", {})
-                return self._pob_skills_cache
+                pob_skills: Dict[str, Any] = data.get("skills", {})
+                self._pob_skills_cache = pob_skills
+                return pob_skills
         except Exception as e:
             logger.error(f"Failed to load PoB skills database: {e}")
             return {}
@@ -189,7 +191,8 @@ class SkillOptimizer:
                 row = result.fetchone()
 
                 if row:
-                    return json.loads(row[0])
+                    skill_row: Dict[str, Any] = json.loads(row[0])
+                    return skill_row
                 return {}
 
             finally:
@@ -362,7 +365,7 @@ class SkillOptimizer:
         self, skill_type: str, support_gems: Dict[str, Any], goal: str
     ) -> List[str]:
         """Find compatible support gems based on skill type and goal"""
-        compatible = []
+        compatible: List[str] = []
 
         for gem_id, gem_data in support_gems.items():
             compatible_with = gem_data.get("compatible_with", [])

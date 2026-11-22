@@ -10,7 +10,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 from . import headless
 
@@ -57,7 +57,7 @@ class CachedEngine:
     def __init__(self, refresh: bool = False, cache_dir: Path = CACHE_DIR):
         self.refresh, self.dir = refresh, Path(cache_dir)
         self._pob: Optional[headless.HeadlessPoB] = None
-        self._loaded: Optional[str] = None
+        self._loaded: Optional[Tuple[str, Optional[int]]] = None
         self.engine_launches = 0
         self._commit = headless.pob_commit()
 
@@ -84,7 +84,8 @@ class CachedEngine:
         f = self._path(key)
         if not self.refresh and f.exists():
             try:
-                return json.loads(f.read_text())
+                cached: Dict[str, Any] = json.loads(f.read_text())
+                return cached
             except Exception:
                 pass
         pob = self._engine()

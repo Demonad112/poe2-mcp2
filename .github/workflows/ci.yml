@@ -127,12 +127,11 @@ jobs:
       - name: isort --check
         run: isort --check-only --profile black src/ tests/ scripts/
 
-  # ---- Advisory: types (non-blocking) ------------------------------------
-  # mypy isn't clean yet; run it as a signal. Promote to blocking once
-  # worked down.
+  # ---- Types (blocking) ---------------------------------------------------
+  # mypy is clean (0 errors); a regression fails the build. Job id stays
+  # `advisory` so existing required-check names keep matching.
   advisory:
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -142,5 +141,5 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt mypy
-      - name: mypy (advisory)
+      - name: mypy
         run: mypy src/pob/ src/mcp_server.py

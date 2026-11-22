@@ -177,7 +177,7 @@ class TradeAPI:
             self.last_error = f"[error] HTTP {code} from trade API. Body: {body}"
 
     async def _fetch_item_details(
-        self, item_ids: List[str], query_id: str = None
+        self, item_ids: List[str], query_id: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """Fetch full details for items by their IDs"""
         try:
@@ -266,7 +266,7 @@ class TradeAPI:
 
     def _build_search_query(self, filters: Dict[str, Any]) -> Dict[str, Any]:
         """Build trade API search query from filters"""
-        query = {
+        query: Dict[str, Any] = {
             "query": {
                 "status": {"option": "securable"},  # PoE2 uses "securable" not "online"
                 "stats": [{"type": "and", "filters": []}],
@@ -294,7 +294,7 @@ class TradeAPI:
         # Items are scored as sum(weight * stat value) and filtered/sorted by that score.
         if filters.get("weighted_sum"):
             ws = filters["weighted_sum"]
-            group = {
+            group: Dict[str, Any] = {
                 "type": "weight",
                 "filters": [
                     {"id": f["id"], "value": {"weight": f.get("weight", 1)}, "disabled": False}
@@ -317,10 +317,10 @@ class TradeAPI:
 
     def _build_stat_filters(self, stats: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Build stat filter groups for the query"""
-        stat_filters = []
+        stat_filters: List[Dict[str, Any]] = []
 
         for stat in stats:
-            stat_filter = {"type": "and", "filters": []}
+            stat_filter: Dict[str, Any] = {"type": "and", "filters": []}
 
             if "id" in stat:
                 stat_filter["filters"].append(
