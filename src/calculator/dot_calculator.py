@@ -388,3 +388,52 @@ def split_expected_hit_by_type(
         return {}
     scale = expected_hit / total
     return {t: v * scale for t, v in composition.items()}
+
+
+def build_ailment_hit_range(
+    ailment: str,
+    base_damage_min: float,
+    base_damage_max: float,
+    primary_type: Optional[str],
+    added_by_type: Dict[str, float],
+    damage_effectiveness: float,
+    after_more: float,
+    crit_multiplier: float,
+    crit_chance_pct: float,
+    chance_on_crit_pct: Optional[float] = None,
+) -> Optional[AilmentHitRange]:
+    """Derive the applying hit's pre-mitigation min/max for one ailment's
+    basis types from the spell pipeline. The spell's base range belongs to
+    its primary type; added flat damage (supplied as averages) is fixed. The
+    shared increased/more scaling is after_more / pre-multiplier composition.
+
+    Returns None for an unknown ailment or when the basis gets no damage."""
+    rule = AILMENT_RULES.get(ailment.lower().strip())
+    if rule is None:
+        return None
+    base_avg = (base_damage_min + base_damage_max) / 2
+    added_total = sum(max(v, 0.0) for v in added_by_type.values()) * damage_effectiveness
+    composition = base_avg + added_total
+    if composition <= 0 or after_more <= 0:
+        return None
+    scale = after_more / composition
+
+    basis = set(rule.basis_types)
+    added_basis = (
+        sum(max(v, 0.0) for t, v in added_by_type.items() if t.lower() in basis)
+        * damage_effectiveness
+    )
+    primary_in_basis = bool(primary_type) and primary_type.lower() in basis
+    lo = added_basis + (base_damage_min if primary_in_basis else 0.0)
+    hi = added_basis + (base_damage_max if primary_in_basis else 0.0)
+    if hi <= 0:
+        return None
+    crit_mult = crit_multiplier if crit_chance_pct > 0 else 1.0
+    return AilmentHitRange(
+        hit_min=lo * scale,
+        hit_max=hi * scale,
+        crit_min=lo * scale * crit_mult,
+        crit_max=hi * scale * crit_mult,
+        crit_chance_pct=crit_chance_pct,
+        chance_on_crit_pct=chance_on_crit_pct,
+    )
