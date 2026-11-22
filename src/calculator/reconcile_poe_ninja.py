@@ -262,11 +262,22 @@ def _num(v: Any) -> Optional[float]:
         return None
 
 
-def _make_row(field_name: str, ninja: Any, mcp: Any, kind: str, group: str, cause_hint: str) -> Dict[str, Any]:
+def _make_row(
+    field_name: str, ninja: Any, mcp: Any, kind: str, group: str, cause_hint: str
+) -> Dict[str, Any]:
     n, m = _num(ninja), _num(mcp)
     if kind == "floor100" and m is not None:
-        mcp, m = round(m * 100, 3), m * 100  # PoB stores a fraction; report on ninja's percent scale
-    row: Dict[str, Any] = {"field": field_name, "group": group, "ninja": ninja, "mcp": mcp, "tolerance": kind}
+        mcp, m = (
+            round(m * 100, 3),
+            m * 100,
+        )  # PoB stores a fraction; report on ninja's percent scale
+    row: Dict[str, Any] = {
+        "field": field_name,
+        "group": group,
+        "ninja": ninja,
+        "mcp": mcp,
+        "tolerance": kind,
+    }
     if n is None or m is None:
         row["delta_pct"] = None
         row["pass"] = False
@@ -338,11 +349,15 @@ def reconcile_with_ninja(
             continue
         defence[nkey] = stats.get(pkey)
         if kind == "pct1":
-            hint = ("EHP/max-hit basis differs: check enemy damage/level config, charges, "
-                    "or pool inputs (life/ES/res) first; else engine version drift")
+            hint = (
+                "EHP/max-hit basis differs: check enemy damage/level config, charges, "
+                "or pool inputs (life/ES/res) first; else engine version drift"
+            )
         else:
-            hint = ("input mismatch: gear/tree/jewel parse or unresolved passive nodes; "
-                    "or PoB version drift vs ninja")
+            hint = (
+                "input mismatch: gear/tree/jewel parse or unresolved passive nodes; "
+                "or PoB version drift vs ninja"
+            )
         group = "overall" if nkey in _OVERALL else "defence"
         diffs.append(_make_row(nkey, ds[nkey], stats.get(pkey), kind, group, hint))
 
@@ -354,20 +369,41 @@ def reconcile_with_ninja(
         for ent in sk.get("dps", []):
             name = ent.get("name")
             row = by_name.get(name)
-            entry: Dict[str, Any] = {"name": name, "ninja": {
-                "dps": ent.get("dps"), "dot_dps": ent.get("dotDps"), "rate": ent.get("rate"),
-                "crit_chance": ent.get("critChance"), "crit_multi": ent.get("critMultiplier"),
-                "split_pct": dict(zip(_TYPES, ent.get("damageTypes") or []))}}
+            entry: Dict[str, Any] = {
+                "name": name,
+                "ninja": {
+                    "dps": ent.get("dps"),
+                    "dot_dps": ent.get("dotDps"),
+                    "rate": ent.get("rate"),
+                    "crit_chance": ent.get("critChance"),
+                    "crit_multi": ent.get("critMultiplier"),
+                    "split_pct": dict(zip(_TYPES, ent.get("damageTypes") or [])),
+                },
+            }
             skills.append(entry)
             f = f"skill[{name}]"
             if row is None:
-                diffs.append({"field": f, "group": "damage", "ninja": ent.get("dps"), "mcp": None,
-                              "tolerance": "pct1", "delta_pct": None, "pass": False,
-                              "cause": "skill not found among enabled PoB socket groups (disabled, or active skill differs)"})
+                diffs.append(
+                    {
+                        "field": f,
+                        "group": "damage",
+                        "ninja": ent.get("dps"),
+                        "mcp": None,
+                        "tolerance": "pct1",
+                        "delta_pct": None,
+                        "pass": False,
+                        "cause": "skill not found among enabled PoB socket groups (disabled, or active skill differs)",
+                    }
+                )
                 continue
             split = row.get("split", {})
-            hit = {t: (split.get(t.capitalize(), {}) or {}).get("hit_average", 0) or 0 for t in _TYPES}
-            comb = {t: (split.get(t.capitalize(), {}) or {}).get("combined_average", 0) or 0 for t in _TYPES}
+            hit = {
+                t: (split.get(t.capitalize(), {}) or {}).get("hit_average", 0) or 0 for t in _TYPES
+            }
+            comb = {
+                t: (split.get(t.capitalize(), {}) or {}).get("combined_average", 0) or 0
+                for t in _TYPES
+            }
             # ninja's split is post-mitigation hit damage = PoB <Type>HitAverage. Some skills (spell/trigger
             # paths) leave it 0; then only the pre-mitigation StoredCombinedAvg exists (different basis).
             post_mitigation = sum(hit.values()) > 0
@@ -376,32 +412,68 @@ def reconcile_with_ninja(
             tot = sum(comb.values()) or 1
             share = {t: round(comb[t] / tot * 100, 2) for t in _TYPES}
             entry["mcp"] = {
-                "dps": row.get("TotalDPS"), "dot_dps": row.get("TotalDotDPS"),
-                "split_pct": share, "split_avg": comb,
-                "split_basis": "post-mitigation HitAverage" if post_mitigation else "pre-mitigation StoredCombinedAvg",
-                "crit_chance": row.get("CritChance"), "crit_multi": row.get("CritMultiplier"),
-                "rate": row.get("Speed"), "hit_chance": row.get("HitChance"),
+                "dps": row.get("TotalDPS"),
+                "dot_dps": row.get("TotalDotDPS"),
+                "split_pct": share,
+                "split_avg": comb,
+                "split_basis": (
+                    "post-mitigation HitAverage"
+                    if post_mitigation
+                    else "pre-mitigation StoredCombinedAvg"
+                ),
+                "crit_chance": row.get("CritChance"),
+                "crit_multi": row.get("CritMultiplier"),
+                "rate": row.get("Speed"),
+                "hit_chance": row.get("HitChance"),
             }
-            dps_hint = ("damage differs: compare split rows first (conversion/gain-as handling), then "
-                        "PoB config (enemy level, charges, conditions) and engine drift")
+            dps_hint = (
+                "damage differs: compare split rows first (conversion/gain-as handling), then "
+                "PoB config (enemy level, charges, conditions) and engine drift"
+            )
             has_dps = bool(ent.get("dps"))
             if has_dps or not ent.get("dotDps"):
-                diffs.append(_make_row(f"{f}.dps", ent.get("dps"), row.get("TotalDPS"), "pct1", "damage", dps_hint))
+                diffs.append(
+                    _make_row(
+                        f"{f}.dps", ent.get("dps"), row.get("TotalDPS"), "pct1", "damage", dps_hint
+                    )
+                )
             if ent.get("dotDps"):
-                diffs.append(_make_row(f"{f}.dot_dps", ent.get("dotDps"), row.get("TotalDotDPS"), "pct1", "damage", dps_hint))
+                diffs.append(
+                    _make_row(
+                        f"{f}.dot_dps",
+                        ent.get("dotDps"),
+                        row.get("TotalDotDPS"),
+                        "pct1",
+                        "damage",
+                        dps_hint,
+                    )
+                )
             if has_dps:
-                for nk, pk, lab in (("rate", "Speed", "rate"), ("critChance", "CritChance", "crit_chance"),
-                                    ("critMultiplier", "CritMultiplier", "crit_multi")):
+                for nk, pk, lab in (
+                    ("rate", "Speed", "rate"),
+                    ("critChance", "CritChance", "crit_chance"),
+                    ("critMultiplier", "CritMultiplier", "crit_multi"),
+                ):
                     if ent.get(nk) is not None:
-                        diffs.append(_make_row(f"{f}.{lab}", ent[nk], row.get(pk), "pct1", "damage",
-                                               "speed/crit inputs differ: gem level, support, tree or gear mod parse"))
+                        diffs.append(
+                            _make_row(
+                                f"{f}.{lab}",
+                                ent[nk],
+                                row.get(pk),
+                                "pct1",
+                                "damage",
+                                "speed/crit inputs differ: gem level, support, tree or gear mod parse",
+                            )
+                        )
                 for t, v in zip(_TYPES, ent.get("damageTypes") or []):
-                    cause = ("damage-type split differs: conversion / gain-as handling or PoB config; on this fixture the physical "
-                             "share is lower in PoB because the engine applies enemy armour reduction (phys is "
-                             "post-armour, elemental is post-res) and ninja's split does not (config/basis, not a mapping error)"
-                             if post_mitigation else
-                             "basis mismatch: PoB exposes only pre-mitigation StoredCombinedAvg for this skill "
-                             "(ninja is post-mitigation, so resist/armour effects show as drift)")
+                    cause = (
+                        "damage-type split differs: conversion / gain-as handling or PoB config; on this fixture the physical "
+                        "share is lower in PoB because the engine applies enemy armour reduction (phys is "
+                        "post-armour, elemental is post-res) and ninja's split does not (config/basis, not a mapping error)"
+                        if post_mitigation
+                        else "basis mismatch: PoB exposes only pre-mitigation StoredCombinedAvg for this skill "
+                        "(ninja is post-mitigation, so resist/armour effects show as drift)"
+                    )
                     diffs.append(_make_row(f"{f}.split.{t}", v, share[t], "pts", "damage", cause))
 
     diffs.sort(key=lambda d: (d["pass"], d["group"], d["field"]))
@@ -409,12 +481,18 @@ def reconcile_with_ninja(
     return {
         "schema": REPORT_SCHEMA,
         "source": {
-            "ninja_url": ninja_url, "config_override": config or None, "ninja_timestamp": char_model.get("updatedUtc"),
-            "character": char_model.get("name"), "pob_commit": pob_commit or hl.pob_commit(),
+            "ninja_url": ninja_url,
+            "config_override": config or None,
+            "ninja_timestamp": char_model.get("updatedUtc"),
+            "character": char_model.get("name"),
+            "pob_commit": pob_commit or hl.pob_commit(),
             "basis": "exact (headless PoB2)",
         },
-        "overall": {"level": char_model.get("level"), "class": char_model.get("class"),
-                    **{k: defence.get(k) for k in _OVERALL if k in defence}},
+        "overall": {
+            "level": char_model.get("level"),
+            "class": char_model.get("class"),
+            **{k: defence.get(k) for k in _OVERALL if k in defence},
+        },
         "defence": {k: v for k, v in defence.items() if k not in _OVERALL},
         "skills": skills,
         "diffs": diffs,
@@ -426,13 +504,19 @@ def format_verify_markdown(report: Dict[str, Any]) -> str:
     """Markdown diff table, failures first (diffs are already sorted that way)."""
     s = report["summary"]
     src = report["source"]
-    lines = [f"**{src.get('character')}** vs poe.ninja ({src.get('ninja_timestamp')}), engine {src.get('pob_commit')}: "
-             f"{s['passed']}/{s['total']} pass, {s['failed']} fail", "",
-             "| | field | ninja | mcp | delta % | cause |", "|---|---|---|---|---|---|"]
+    lines = [
+        f"**{src.get('character')}** vs poe.ninja ({src.get('ninja_timestamp')}), engine {src.get('pob_commit')}: "
+        f"{s['passed']}/{s['total']} pass, {s['failed']} fail",
+        "",
+        "| | field | ninja | mcp | delta % | cause |",
+        "|---|---|---|---|---|---|",
+    ]
     for d in report["diffs"]:
         mcp = d["mcp"]
         mcp = round(mcp, 3) if isinstance(mcp, float) else mcp
         delta = "" if d["delta_pct"] is None else d["delta_pct"]
-        lines.append(f"| {'ok' if d['pass'] else 'FAIL'} | {d['field']} | {d['ninja']} | {mcp} | "
-                     f"{delta} | {d.get('cause', '')} |")
+        lines.append(
+            f"| {'ok' if d['pass'] else 'FAIL'} | {d['field']} | {d['ninja']} | {mcp} | "
+            f"{delta} | {d.get('cause', '')} |"
+        )
     return "\n".join(lines)

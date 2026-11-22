@@ -1,4 +1,5 @@
 """search_for_upgrades must build category + pseudo-stat queries for any supported slot."""
+
 import asyncio
 from unittest.mock import AsyncMock
 
@@ -22,7 +23,9 @@ def test_ring_slot_builds_category_and_pseudo_res_filters():
     assert list(out) == ["rings"]
     league, filters = api.search_items.call_args.args[:2]
     assert league == "Forbidden Rites"
-    assert filters["item_filters"]["type_filters"]["filters"]["category"]["option"] == "accessory.ring"
+    assert (
+        filters["item_filters"]["type_filters"]["filters"]["category"]["option"] == "accessory.ring"
+    )
     ids = {s["id"]: s["min"] for s in filters["stats"]}
     assert ids == {
         "pseudo.pseudo_total_lightning_resistance": 2,

@@ -455,7 +455,9 @@ def test_calculate_dps_crit_chance_capped_at_100(calc):
 
 
 # --- PoB parity: tick cap, shock-as-DamageTaken, evade rounding (review PRs #16-18) ---
-from src.calculator.spell_dps_calculator import EnemyStats as _ES, SERVER_TICK_RATE as _TICK, SpellDPSCalculator as _Calc
+from src.calculator.spell_dps_calculator import SERVER_TICK_RATE as _TICK
+from src.calculator.spell_dps_calculator import EnemyStats as _ES
+from src.calculator.spell_dps_calculator import SpellDPSCalculator as _Calc
 
 
 def test_tick_cap_applies_to_normal_spell():

@@ -1,4 +1,5 @@
 """MCP schema advertises the headless build inputs; EHP report formatting handles headless JSON."""
+
 import json
 import re
 from pathlib import Path
@@ -10,7 +11,7 @@ SRC = (Path(__file__).resolve().parents[1] / "src" / "mcp_server.py").read_text(
 
 def _tool_block(name):
     i = SRC.index(f'name="{name}"')
-    return SRC[i:i + 9000].split("types.Tool(")[0]
+    return SRC[i : i + 9000].split("types.Tool(")[0]
 
 
 def test_dps_and_ehp_schemas_expose_build_inputs():
@@ -25,7 +26,9 @@ def test_calculate_ehp_dispatch_registered():
 
 
 def test_ehp_report_formats_headless_json_as_markdown():
-    out = M._ehp_text_for_report(json.dumps({"stats": {"Life": 1187, "FireMaximumHitTaken": 791, "TotalEHP": 872.1}}))
+    out = M._ehp_text_for_report(
+        json.dumps({"stats": {"Life": 1187, "FireMaximumHitTaken": 791, "TotalEHP": 872.1}})
+    )
     assert "{" not in out and "**Total EHP:** 872" in out and "**Life:** 1,187" in out
 
 

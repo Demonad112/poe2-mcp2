@@ -855,8 +855,12 @@ class EHPCalculator:
 
     @staticmethod
     def _resist_cap_and_pen(stats, damage_type, threat):
-        key = {DamageType.FIRE: "fire", DamageType.COLD: "cold",
-               DamageType.LIGHTNING: "lightning", DamageType.CHAOS: "chaos"}.get(damage_type)
+        key = {
+            DamageType.FIRE: "fire",
+            DamageType.COLD: "cold",
+            DamageType.LIGHTNING: "lightning",
+            DamageType.CHAOS: "chaos",
+        }.get(damage_type)
         if key is None:
             return 75.0, 0.0
         pen = getattr(threat, f"enemy_{key}_pen", 0.0) if threat is not None else 0.0

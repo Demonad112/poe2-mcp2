@@ -1,4 +1,5 @@
 """Trade query building: weighted sum groups and shareable link (no network)."""
+
 import asyncio
 
 import httpx

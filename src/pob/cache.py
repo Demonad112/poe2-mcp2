@@ -3,6 +3,7 @@
 Key = sha256(build XML) + PoB commit + sorted config + sorted fields (+ action/params).
 A cache hit never starts LuaJIT: the engine is only launched lazily on the first miss.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -25,15 +26,27 @@ def bridge_hash() -> str:
         return "nobridge"
 
 
-def cache_key(xml: str, action: str = "get_stats", config: Optional[dict] = None,
-              fields: Optional[list] = None, params: Optional[dict] = None, commit: Optional[str] = None,
-              level: Optional[int] = None) -> str:
+def cache_key(
+    xml: str,
+    action: str = "get_stats",
+    config: Optional[dict] = None,
+    fields: Optional[list] = None,
+    params: Optional[dict] = None,
+    commit: Optional[str] = None,
+    level: Optional[int] = None,
+) -> str:
     h = hashlib.sha256()
     h.update(hashlib.sha256(xml.encode("utf-8")).digest())
-    meta = {"commit": commit or headless.pob_commit(), "action": action,
-            "config": sorted((config or {}).items()), "fields": sorted(fields or []),
-            "params": sorted((params or {}).items(), key=lambda kv: kv[0]),
-            "bridge": bridge_hash(), "bridge_version": headless.bridge_version(), "level": level}
+    meta = {
+        "commit": commit or headless.pob_commit(),
+        "action": action,
+        "config": sorted((config or {}).items()),
+        "fields": sorted(fields or []),
+        "params": sorted((params or {}).items(), key=lambda kv: kv[0]),
+        "bridge": bridge_hash(),
+        "bridge_version": headless.bridge_version(),
+        "level": level,
+    }
     h.update(json.dumps(meta, sort_keys=True, default=str).encode())
     return h.hexdigest()
 
@@ -58,8 +71,15 @@ class CachedEngine:
     def _path(self, key: str) -> Path:
         return self.dir / f"{key}.json"
 
-    def query(self, xml: str, action: str = "get_stats", config: Optional[dict] = None,
-              fields: Optional[list] = None, level: Optional[int] = None, **params: Any) -> Dict[str, Any]:
+    def query(
+        self,
+        xml: str,
+        action: str = "get_stats",
+        config: Optional[dict] = None,
+        fields: Optional[list] = None,
+        level: Optional[int] = None,
+        **params: Any,
+    ) -> Dict[str, Any]:
         key = cache_key(xml, action, config, fields, params, self._commit, level)
         f = self._path(key)
         if not self.refresh and f.exists():

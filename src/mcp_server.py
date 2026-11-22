@@ -811,11 +811,21 @@ class PoE2BuildOptimizerMCP:
                     inputSchema={
                         "type": "object",
                         "properties": {
-                            "pob_file_path": {"type": "string", "description": "File with PoB code or XML"},
-                            "config": {"type": "object", "description": "Raw PoB config input overrides (win over the what-if args below)"},
+                            "pob_file_path": {
+                                "type": "string",
+                                "description": "File with PoB code or XML",
+                            },
+                            "config": {
+                                "type": "object",
+                                "description": "Raw PoB config input overrides (win over the what-if args below)",
+                            },
                             **PoE2BuildOptimizerMCP._whatif_schema_props(),
                             "level": {"type": "integer", "description": "Character level override"},
-                            "fields": {"type": "array", "items": {"type": "string"}, "description": "Only return these stat keys (e.g. TotalDPS, CombinedDPS, Life, EnergyShield, Spirit)"},
+                            "fields": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Only return these stat keys (e.g. TotalDPS, CombinedDPS, Life, EnergyShield, Spirit)",
+                            },
                         },
                         "required": ["pob_file_path"],
                     },
@@ -1178,9 +1188,18 @@ class PoE2BuildOptimizerMCP:
                                 "type": "number",
                                 "description": "Sum of all %increased crit chance. Multiplies (base + added_crit_chance), matching PoB; NOT a flat addition (changed in #16). Default 0.",
                             },
-                            "more_crit_chance": {"type": "number", "description": "%more crit chance. Default 0."},
-                            "added_crit_chance": {"type": "number", "description": "Flat crit chance added to base before scaling. Default 0."},
-                            "more_crit_damage": {"type": "number", "description": "%more crit damage bonus. Default 0."},
+                            "more_crit_chance": {
+                                "type": "number",
+                                "description": "%more crit chance. Default 0.",
+                            },
+                            "added_crit_chance": {
+                                "type": "number",
+                                "description": "Flat crit chance added to base before scaling. Default 0.",
+                            },
+                            "more_crit_damage": {
+                                "type": "number",
+                                "description": "%more crit damage bonus. Default 0.",
+                            },
                             "added_crit_bonus": {
                                 "type": "number",
                                 "description": (
@@ -1281,9 +1300,18 @@ class PoE2BuildOptimizerMCP:
                                 "type": "integer",
                                 "description": "Character level override for the headless engine.",
                             },
-                            "account": {"type": "string", "description": "Account name (fetch character from API; Python path)."},
-                            "character": {"type": "string", "description": "Character name (with account)."},
-                            "league": {"type": "string", "description": "League for the API fetch."},
+                            "account": {
+                                "type": "string",
+                                "description": "Account name (fetch character from API; Python path).",
+                            },
+                            "character": {
+                                "type": "string",
+                                "description": "Character name (with account).",
+                            },
+                            "league": {
+                                "type": "string",
+                                "description": "League for the API fetch.",
+                            },
                         },
                         "required": [],
                     },
@@ -1361,8 +1389,14 @@ class PoE2BuildOptimizerMCP:
                                 "type": "string",
                                 "description": "File holding a PoB2 export code/XML. With the headless engine ready, resists/life/ES/spirit/level come from PoB (response is labelled PoB-exact); otherwise the supplied character_data is validated and labelled [approximate].",
                             },
-                            "config": {"type": "object", "description": "Raw PoB config overrides for the headless run."},
-                            "level": {"type": "integer", "description": "Character level override for the headless run."},
+                            "config": {
+                                "type": "object",
+                                "description": "Raw PoB config overrides for the headless run.",
+                            },
+                            "level": {
+                                "type": "integer",
+                                "description": "Character level override for the headless run.",
+                            },
                             **PoE2BuildOptimizerMCP._whatif_schema_props(),
                         },
                         "required": [],
@@ -1378,8 +1412,14 @@ class PoE2BuildOptimizerMCP:
                     inputSchema={
                         "type": "object",
                         "properties": {
-                            "char_model": {"type": "object", "description": "poe.ninja charModel dict."},
-                            "char_model_path": {"type": "string", "description": "Path to a JSON file holding a charModel (or {\"charModel\": ...})."},
+                            "char_model": {
+                                "type": "object",
+                                "description": "poe.ninja charModel dict.",
+                            },
+                            "char_model_path": {
+                                "type": "string",
+                                "description": 'Path to a JSON file holding a charModel (or {"charModel": ...}).',
+                            },
                         },
                         "required": [],
                     },
@@ -1396,10 +1436,22 @@ class PoE2BuildOptimizerMCP:
                     inputSchema={
                         "type": "object",
                         "properties": {
-                            "char_model": {"type": "object", "description": "poe.ninja charModel dict (needs pathOfBuildingExport)."},
-                            "char_model_path": {"type": "string", "description": "Path to a JSON file holding a charModel (or {\"charModel\": ...})."},
-                            "ninja_url": {"type": "string", "description": "Echoed into the report source block."},
-                            "config": {"type": "object", "description": "Optional PoB Configuration-tab overrides for what-if diagnosis (e.g. {\"enemyLightningResist\": 60}). Default: the export's own config. Echoed in the report."},
+                            "char_model": {
+                                "type": "object",
+                                "description": "poe.ninja charModel dict (needs pathOfBuildingExport).",
+                            },
+                            "char_model_path": {
+                                "type": "string",
+                                "description": 'Path to a JSON file holding a charModel (or {"charModel": ...}).',
+                            },
+                            "ninja_url": {
+                                "type": "string",
+                                "description": "Echoed into the report source block.",
+                            },
+                            "config": {
+                                "type": "object",
+                                "description": 'Optional PoB Configuration-tab overrides for what-if diagnosis (e.g. {"enemyLightningResist": 60}). Default: the export\'s own config. Echoed in the report.',
+                            },
                         },
                         "required": [],
                     },
@@ -2351,15 +2403,42 @@ Tracked at https://github.com/HivemindOverlord/poe2-mcp/issues/61.
     def _whatif_schema_props() -> dict:
         """Documented first-class headless what-if args (see src/pob/headless.py::build_config)."""
         return {
-            "enemy_level": {"type": "integer", "description": "What-if: enemy level (PoB config enemyLevel; max 85 for normal enemies/bosses)."},
-            "enemy_shocked": {"type": "boolean", "description": "What-if: enemy is Shocked (conditionEnemyShocked)."},
-            "shock_effect": {"type": "integer", "description": "What-if: Shock effect % on the enemy (conditionShockEffect); implies enemy_shocked."},
-            "fire_exposure": {"type": "boolean", "description": "What-if: enemy has Fire Exposure (-20% fire res)."},
-            "cold_exposure": {"type": "boolean", "description": "What-if: enemy has Cold Exposure (-20% cold res)."},
-            "lightning_exposure": {"type": "boolean", "description": "What-if: enemy has Lightning Exposure (-20% lightning res)."},
-            "power_charges": {"type": "integer", "description": "What-if: Power Charges held (0 = none)."},
-            "frenzy_charges": {"type": "integer", "description": "What-if: Frenzy Charges held (0 = none)."},
-            "endurance_charges": {"type": "integer", "description": "What-if: Endurance Charges held (0 = none)."},
+            "enemy_level": {
+                "type": "integer",
+                "description": "What-if: enemy level (PoB config enemyLevel; max 85 for normal enemies/bosses).",
+            },
+            "enemy_shocked": {
+                "type": "boolean",
+                "description": "What-if: enemy is Shocked (conditionEnemyShocked).",
+            },
+            "shock_effect": {
+                "type": "integer",
+                "description": "What-if: Shock effect % on the enemy (conditionShockEffect); implies enemy_shocked.",
+            },
+            "fire_exposure": {
+                "type": "boolean",
+                "description": "What-if: enemy has Fire Exposure (-20% fire res).",
+            },
+            "cold_exposure": {
+                "type": "boolean",
+                "description": "What-if: enemy has Cold Exposure (-20% cold res).",
+            },
+            "lightning_exposure": {
+                "type": "boolean",
+                "description": "What-if: enemy has Lightning Exposure (-20% lightning res).",
+            },
+            "power_charges": {
+                "type": "integer",
+                "description": "What-if: Power Charges held (0 = none).",
+            },
+            "frenzy_charges": {
+                "type": "integer",
+                "description": "What-if: Frenzy Charges held (0 = none).",
+            },
+            "endurance_charges": {
+                "type": "integer",
+                "description": "What-if: Endurance Charges held (0 = none).",
+            },
         }
 
     async def _handle_headless_pob_status(self, args: dict) -> List[types.TextContent]:
@@ -2367,7 +2446,9 @@ Tracked at https://github.com/HivemindOverlord/poe2-mcp/issues/61.
             from .pob import headless
         except ImportError:
             from src.pob import headless
-        return [types.TextContent(type="text", text=json.dumps(headless.find_environment(), indent=2))]
+        return [
+            types.TextContent(type="text", text=json.dumps(headless.find_environment(), indent=2))
+        ]
 
     async def _handle_headless_pob_calc(self, args: dict) -> List[types.TextContent]:
         try:
@@ -2377,7 +2458,11 @@ Tracked at https://github.com/HivemindOverlord/poe2-mcp/issues/61.
         try:
             raw = Path(args["pob_file_path"]).read_text(encoding="utf-8")
             res = await asyncio.to_thread(
-                headless.calc, raw, headless.build_config(args), args.get("fields"), args.get("level")
+                headless.calc,
+                raw,
+                headless.build_config(args),
+                args.get("fields"),
+                args.get("level"),
             )
             return [types.TextContent(type="text", text=json.dumps(res, indent=2, default=str))]
         except Exception as e:
@@ -4379,12 +4464,32 @@ Consider:
         )
         return response
 
-    _HEADLESS_DPS_FIELDS = ["CombinedDPS", "TotalDPS", "FullDPS", "Speed", "CritChance", "CritMultiplier",
-                            "HitChance"]
-    _HEADLESS_EHP_FIELDS = ["Life", "EnergyShield", "Armour", "Evasion", "EvadeChance", "FireResist",
-                            "ColdResist", "LightningResist", "ChaosResist", "PhysicalMaximumHitTaken",
-                            "FireMaximumHitTaken", "ColdMaximumHitTaken", "LightningMaximumHitTaken",
-                            "ChaosMaximumHitTaken", "TotalEHP"]
+    _HEADLESS_DPS_FIELDS = [
+        "CombinedDPS",
+        "TotalDPS",
+        "FullDPS",
+        "Speed",
+        "CritChance",
+        "CritMultiplier",
+        "HitChance",
+    ]
+    _HEADLESS_EHP_FIELDS = [
+        "Life",
+        "EnergyShield",
+        "Armour",
+        "Evasion",
+        "EvadeChance",
+        "FireResist",
+        "ColdResist",
+        "LightningResist",
+        "ChaosResist",
+        "PhysicalMaximumHitTaken",
+        "FireMaximumHitTaken",
+        "ColdMaximumHitTaken",
+        "LightningMaximumHitTaken",
+        "ChaosMaximumHitTaken",
+        "TotalEHP",
+    ]
 
     @staticmethod
     def _extract_pob_export(args: dict):
@@ -4402,7 +4507,16 @@ Consider:
         return None
 
     _APPROX_LABEL = "[approximate: Python fallback, not PoB-exact; pass pob_file_path with the headless engine ready for exact numbers]\n"
-    _HEADLESS_VALIDATE_FIELDS = ["FireResist", "ColdResist", "LightningResist", "ChaosResist", "Life", "EnergyShield", "Spirit", "SpiritReserved"]
+    _HEADLESS_VALIDATE_FIELDS = [
+        "FireResist",
+        "ColdResist",
+        "LightningResist",
+        "ChaosResist",
+        "Life",
+        "EnergyShield",
+        "Spirit",
+        "SpiritReserved",
+    ]
 
     async def _route_headless_first(self, args: dict, fields: list, python_fn):
         """Use the PoB-exact headless engine when it is ready and a build file is supplied;
@@ -4421,14 +4535,25 @@ Consider:
                 if ready:
                     raw = Path(path).read_text(encoding="utf-8") if path else inline_code
                     res = await asyncio.to_thread(
-                        headless.calc, raw, headless.build_config(args), args.get("fields") or fields, args.get("level")
+                        headless.calc,
+                        raw,
+                        headless.build_config(args),
+                        args.get("fields") or fields,
+                        args.get("level"),
                     )
                     res = {"source": "headless_pob", "exact": True, **res}
-                    return [types.TextContent(type="text", text=json.dumps(res, indent=2, default=str))]
+                    return [
+                        types.TextContent(type="text", text=json.dumps(res, indent=2, default=str))
+                    ]
             except Exception as e:  # fall through to the Python path
                 logger.warning("headless route failed, using Python fallback: %s", e)
         out = await python_fn(args)
-        return [types.TextContent(type="text", text=self._APPROX_LABEL + "\n".join(getattr(t, "text", "") for t in out))]
+        return [
+            types.TextContent(
+                type="text",
+                text=self._APPROX_LABEL + "\n".join(getattr(t, "text", "") for t in out),
+            )
+        ]
 
     @staticmethod
     def _ehp_text_for_report(text: str) -> str:
@@ -4443,27 +4568,47 @@ Consider:
             return text
         if not isinstance(data, dict):
             return text
-        stats = data.get("stats") if isinstance(data.get("stats"), dict) else {
-            k: v for k, v in data.items() if isinstance(v, (int, float, str))
-        }
+        stats = (
+            data.get("stats")
+            if isinstance(data.get("stats"), dict)
+            else {k: v for k, v in data.items() if isinstance(v, (int, float, str))}
+        )
         out = [" (PoB-exact, headless engine)\n"]
-        for label, key in (("Life", "Life"), ("Energy Shield", "EnergyShield"), ("Armour", "Armour"),
-                           ("Evasion", "Evasion"), ("Evade chance %", "EvadeChance"),
-                           ("Fire res %", "FireResist"), ("Cold res %", "ColdResist"),
-                           ("Lightning res %", "LightningResist"), ("Chaos res %", "ChaosResist"),
-                           ("Max hit Physical", "PhysicalMaximumHitTaken"), ("Max hit Fire", "FireMaximumHitTaken"),
-                           ("Max hit Cold", "ColdMaximumHitTaken"), ("Max hit Lightning", "LightningMaximumHitTaken"),
-                           ("Max hit Chaos", "ChaosMaximumHitTaken"), ("Total EHP", "TotalEHP")):
+        for label, key in (
+            ("Life", "Life"),
+            ("Energy Shield", "EnergyShield"),
+            ("Armour", "Armour"),
+            ("Evasion", "Evasion"),
+            ("Evade chance %", "EvadeChance"),
+            ("Fire res %", "FireResist"),
+            ("Cold res %", "ColdResist"),
+            ("Lightning res %", "LightningResist"),
+            ("Chaos res %", "ChaosResist"),
+            ("Max hit Physical", "PhysicalMaximumHitTaken"),
+            ("Max hit Fire", "FireMaximumHitTaken"),
+            ("Max hit Cold", "ColdMaximumHitTaken"),
+            ("Max hit Lightning", "LightningMaximumHitTaken"),
+            ("Max hit Chaos", "ChaosMaximumHitTaken"),
+            ("Total EHP", "TotalEHP"),
+        ):
             if key in stats and stats[key] is not None:
                 v = stats[key]
-                out.append(f"- **{label}:** {v:,.0f}" if isinstance(v, (int, float)) else f"- **{label}:** {v}")
+                out.append(
+                    f"- **{label}:** {v:,.0f}"
+                    if isinstance(v, (int, float))
+                    else f"- **{label}:** {v}"
+                )
         return "\n".join(out) if len(out) > 1 else "\n```json\n" + text + "\n```"
 
     async def _handle_calculate_character_dps(self, args: dict) -> List[types.TextContent]:
-        return await self._route_headless_first(args, self._HEADLESS_DPS_FIELDS, self._calculate_character_dps_python)
+        return await self._route_headless_first(
+            args, self._HEADLESS_DPS_FIELDS, self._calculate_character_dps_python
+        )
 
     async def _handle_calculate_ehp(self, args: dict) -> List[types.TextContent]:
-        return await self._route_headless_first(args, self._HEADLESS_EHP_FIELDS, self._calculate_ehp_python)
+        return await self._route_headless_first(
+            args, self._HEADLESS_EHP_FIELDS, self._calculate_ehp_python
+        )
 
     async def _calculate_character_dps_python(self, args: dict) -> List[types.TextContent]:
         """Server-side spell DPS calculation. P5 / Issue #114.
@@ -6569,24 +6714,43 @@ Consider:
                 if headless.find_environment().get("ready"):
                     raw = Path(path).read_text(encoding="utf-8") if path else inline
                     res = await asyncio.to_thread(
-                        headless.calc, raw, headless.build_config(args), self._HEADLESS_VALIDATE_FIELDS, args.get("level")
+                        headless.calc,
+                        raw,
+                        headless.build_config(args),
+                        self._HEADLESS_VALIDATE_FIELDS,
+                        args.get("level"),
                     )
                     st = res.get("stats") or {}
                     exact = {
-                        "fire_resistance": st.get("FireResist"), "cold_resistance": st.get("ColdResist"),
-                        "lightning_resistance": st.get("LightningResist"), "chaos_resistance": st.get("ChaosResist"),
-                        "life": st.get("Life"), "energy_shield": st.get("EnergyShield"),
-                        "spirit": st.get("Spirit"), "spirit_reserved": st.get("SpiritReserved"),
+                        "fire_resistance": st.get("FireResist"),
+                        "cold_resistance": st.get("ColdResist"),
+                        "lightning_resistance": st.get("LightningResist"),
+                        "chaos_resistance": st.get("ChaosResist"),
+                        "life": st.get("Life"),
+                        "energy_shield": st.get("EnergyShield"),
+                        "spirit": st.get("Spirit"),
+                        "spirit_reserved": st.get("SpiritReserved"),
                         "level": res.get("level"),
                     }
                     data = {**data, **{k: v for k, v in exact.items() if v is not None}}
-                    out = await self._validate_build_constraints_python({**args, "character_data": data})
+                    out = await self._validate_build_constraints_python(
+                        {**args, "character_data": data}
+                    )
                     text = "\n".join(getattr(t, "text", "") for t in out)
-                    return [types.TextContent(type="text", text="[PoB-exact: stats from headless engine]\n" + text)]
+                    return [
+                        types.TextContent(
+                            type="text", text="[PoB-exact: stats from headless engine]\n" + text
+                        )
+                    ]
             except Exception as e:  # fall through to the supplied-data path
                 logger.warning("headless validate route failed, using Python fallback: %s", e)
         out = await self._validate_build_constraints_python({**args, "character_data": data})
-        return [types.TextContent(type="text", text=self._APPROX_LABEL + "\n".join(getattr(t, "text", "") for t in out))]
+        return [
+            types.TextContent(
+                type="text",
+                text=self._APPROX_LABEL + "\n".join(getattr(t, "text", "") for t in out),
+            )
+        ]
 
     async def _validate_build_constraints_python(self, args: dict) -> List[types.TextContent]:
         """Comprehensive build validation.
@@ -6746,18 +6910,34 @@ Consider:
         """Offline suggestions from a charModel."""
         try:
             try:
-                from .calculator.ninja_suggestions import format_suggestions_markdown, suggest_from_charmodel
+                from .calculator.ninja_suggestions import (
+                    format_suggestions_markdown,
+                    suggest_from_charmodel,
+                )
             except ImportError:
-                from src.calculator.ninja_suggestions import format_suggestions_markdown, suggest_from_charmodel
+                from src.calculator.ninja_suggestions import (
+                    format_suggestions_markdown,
+                    suggest_from_charmodel,
+                )
             cm = args.get("char_model")
             if not cm and args.get("char_model_path"):
                 cm = json.loads(Path(args["char_model_path"]).read_text(encoding="utf-8"))
             if isinstance(cm, dict) and "charModel" in cm:
                 cm = cm["charModel"]
             if not cm or not isinstance(cm, dict):
-                return [types.TextContent(type="text", text="Error: char_model (object) or char_model_path is required.")]
+                return [
+                    types.TextContent(
+                        type="text",
+                        text="Error: char_model (object) or char_model_path is required.",
+                    )
+                ]
             r = suggest_from_charmodel(cm)
-            return [types.TextContent(type="text", text=json.dumps(r, indent=2) + "\n\n" + format_suggestions_markdown(r))]
+            return [
+                types.TextContent(
+                    type="text",
+                    text=json.dumps(r, indent=2) + "\n\n" + format_suggestions_markdown(r),
+                )
+            ]
         except Exception as e:
             logger.error(f"suggest_from_ninja error: {e}", exc_info=True)
             return [types.TextContent(type="text", text=f"suggest_from_ninja error: {e}")]
@@ -6766,18 +6946,33 @@ Consider:
         """Exact-engine vs poe.ninja diff (verify-report/v1)."""
         try:
             try:
-                from .calculator.reconcile_poe_ninja import format_verify_markdown, reconcile_with_ninja
+                from .calculator.reconcile_poe_ninja import (
+                    format_verify_markdown,
+                    reconcile_with_ninja,
+                )
             except ImportError:
-                from src.calculator.reconcile_poe_ninja import format_verify_markdown, reconcile_with_ninja
+                from src.calculator.reconcile_poe_ninja import (
+                    format_verify_markdown,
+                    reconcile_with_ninja,
+                )
             cm = args.get("char_model")
             if not cm and args.get("char_model_path"):
                 cm = json.loads(Path(args["char_model_path"]).read_text(encoding="utf-8"))
             if isinstance(cm, dict) and "charModel" in cm:
                 cm = cm["charModel"]
             if not cm or not isinstance(cm, dict):
-                return [types.TextContent(type="text", text="Error: char_model (object) or char_model_path is required.")]
-            report = await asyncio.to_thread(reconcile_with_ninja, cm, None, args.get("ninja_url"), None, args.get("config"))
-            text = json.dumps(report, indent=2, default=str) + "\n\n" + format_verify_markdown(report)
+                return [
+                    types.TextContent(
+                        type="text",
+                        text="Error: char_model (object) or char_model_path is required.",
+                    )
+                ]
+            report = await asyncio.to_thread(
+                reconcile_with_ninja, cm, None, args.get("ninja_url"), None, args.get("config")
+            )
+            text = (
+                json.dumps(report, indent=2, default=str) + "\n\n" + format_verify_markdown(report)
+            )
             return [types.TextContent(type="text", text=text)]
         except Exception as e:
             logger.error(f"verify_character error: {e}", exc_info=True)

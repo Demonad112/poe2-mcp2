@@ -146,7 +146,9 @@ def test_evasion_hit_chance_capped_minimum_5_percent(calc):
     """Massive evasion still leaves a 5% min hit chance — game design."""
     # Asymptotic: 1 - 0.95*ev/(ev+4*acc) approaches but never reaches 5% for finite evasion.
     result = calc.calculate_evasion_chance(1_000_000, 100)
-    assert math.isclose(result.hit_chance_percent, DefenseConstants.EVASION_MIN_HIT_CHANCE, abs_tol=0.05)
+    assert math.isclose(
+        result.hit_chance_percent, DefenseConstants.EVASION_MIN_HIT_CHANCE, abs_tol=0.05
+    )
     assert math.isclose(result.evade_chance_percent, 95.0, abs_tol=0.05)
 
 
@@ -335,16 +337,21 @@ def test_evasion_needed_inverts_monster_hit_chance(calc):
     """evasion_needed_for_hit_chance must round-trip through calculate_evasion_chance."""
     for target in (20.0, 50.0, 80.0):
         ev = calc.evasion_needed_for_hit_chance(target, 2000)
-        assert math.isclose(calc.calculate_evasion_chance(ev, 2000).hit_chance_percent, target, abs_tol=0.01)
+        assert math.isclose(
+            calc.calculate_evasion_chance(ev, 2000).hit_chance_percent, target, abs_tol=0.01
+        )
 
 
 def test_evasion_matches_pob_reference_point(calc):
     """PoB calcs.monsterHitChance(2000, 2000) = 81% hit -> 19% evade (audit item 1)."""
-    assert math.isclose(calc.calculate_evasion_chance(2000, 2000).evade_chance_percent, 19.0, abs_tol=0.5)
+    assert math.isclose(
+        calc.calculate_evasion_chance(2000, 2000).evade_chance_percent, 19.0, abs_tol=0.5
+    )
 
 
 def test_evade_chance_rounded_like_pob():
     from src.calculator.defense_calculator import DefenseCalculator
+
     r = DefenseCalculator().calculate_evasion_chance(5000, 2000)
     assert r.evade_chance_percent == int(r.evade_chance_percent)
     assert r.hit_chance_percent == int(r.hit_chance_percent)
