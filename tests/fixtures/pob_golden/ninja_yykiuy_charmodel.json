@@ -66,6 +66,7 @@
   "CombinedDPS": 251182.44009137,
   "CritChance": 64.56,
   "CritMultiplier": 4.4,
+  "DpsMultiplier": 1,
   "EnergyShield": 2922,
   "Evasion": 8704,
   "FireEnemyPen": 3,

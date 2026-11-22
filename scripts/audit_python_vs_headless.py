@@ -15,7 +15,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from src.calculator.defense_calculator import DefenseCalculator, DefenseConstants  # noqa: E402
-from src.calculator.dot_calculator import AilmentInput, DoTCalculator  # noqa: E402
+from src.calculator.dot_calculator import (  # noqa: E402
+    AilmentHitRange,
+    AilmentInput,
+    DoTCalculator,
+)
 from src.calculator.ehp_calculator import (  # noqa: E402
     DamageType,
     DefensiveStats,
@@ -78,6 +82,14 @@ FIELDS = [
     "ChaosMaximumHitTaken",
     "IgniteDPS",
     "IgniteChanceOnHit",
+    "IgniteChanceOnCrit",
+    "FireStoredHitMin",
+    "FireStoredHitMax",
+    "FireStoredCritMin",
+    "FireStoredCritMax",
+    "CritChance",
+    "HitChance",
+    "DpsMultiplier",
     "Minion.TotalDPS",
     "Minion.AverageDamage",
     "Minion.Speed",
@@ -284,21 +296,30 @@ def audit_build(name, xml, eng, base):
             python_conversion_dps(s, dps_inputs),
         )
     )
-    # hit-DoT: Ignite DPS. Python ailment math on the engine-read crit-weighted fire hit pool, enemy fire res
-    # read from the enemy modDB (skill cfg) and the engine's own hit rate; PoB = IgniteDPS.
+    # hit-DoT: Ignite DPS. Python ailment math on the engine-read fire hit range (min/max, hit and crit) and
+    # crit chance, enemy fire res read from the enemy modDB (skill cfg), and the engine's hit rate x hit chance
+    # x DPS multiplier. Strongest-instance roll/crit weighting follows CalcOffence.lua; PoB = IgniteDPS.
     if s.get("IgniteDPS") and s.get("IgniteChanceOnHit"):
         res = e_res["FireResist"] + e_res["ElementalResist"]
         ig = DoTCalculator().calculate_ailment_dot(
             AilmentInput(ailment="ignite", chance_pct=s.get("IgniteChanceOnHit") or 0),
             {"fire": s["FireStoredCombinedAvg"]},
-            s["Speed"],
+            s["Speed"] * (s.get("HitChance") or 100) / 100 * (s.get("DpsMultiplier") or 1),
             EnemyStats(fire_resistance=res),
+            hit_range=AilmentHitRange(
+                hit_min=s.get("FireStoredHitMin") or 0,
+                hit_max=s.get("FireStoredHitMax") or 0,
+                crit_min=s.get("FireStoredCritMin") or 0,
+                crit_max=s.get("FireStoredCritMax") or 0,
+                crit_chance_pct=s.get("CritChance") or 0,
+                chance_on_crit_pct=s.get("IgniteChanceOnCrit"),
+            ),
         )
         rows.append(
             (
-                "Ignite DPS (python ailment math x chance, engine fire pool)",
+                "Ignite DPS (python ailment math, engine fire hit range)",
                 s["IgniteDPS"],
-                ig["dps_per_stack"] * min(s["IgniteChanceOnHit"], 100) / 100,
+                ig["sustained_dps"],
             )
         )
     # minion DPS: engine-read per-hit minion damage x its attack/cast rate x hit chance x DPS multiplier.

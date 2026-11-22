@@ -21,6 +21,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from src.calculator.dot_calculator import (
     AILMENT_RULES,
+    AilmentHitRange,
     AilmentInput,
     DoTCalculator,
     SkillDoTInput,
@@ -385,3 +386,36 @@ async def test_handler_without_dot_block_unchanged():
     text = result[0].text
     assert "Damage over Time" not in text
     assert "Total DPS" in text
+
+
+# --- PoB strongest-instance weighting (CalcOffence.lua) --------------------
+# Values pinned from the headless engine on tests/fixtures/builds fixtures:
+# synthetic_hit_dot_ignite_fireball (IgniteDPS 71.4357) and
+# synthetic_spell_fireball (IgniteDPS 0.386025, chance on crit != on hit).
+
+
+def test_ignite_hit_range_overapplied_matches_pob():
+    r = DoTCalculator().calculate_ailment_dot(
+        AilmentInput(ailment="ignite", chance_pct=100),
+        {},
+        0.8333333333333,
+        EnemyStats(fire_resistance=50),
+        hit_range=AilmentHitRange(403, 605, 926.9, 1391.5, crit_chance_pct=7),
+    )
+    assert r["stack_potential"] == pytest.approx(3.333, abs=1e-3)
+    assert r["roll_average_pct"] == pytest.approx(76.92, abs=0.01)
+    assert r["sustained_dps"] == pytest.approx(71.4357, rel=1e-4)
+
+
+def test_ignite_hit_range_crit_chance_differs_matches_pob():
+    r = DoTCalculator().calculate_ailment_dot(
+        AilmentInput(ailment="ignite", chance_pct=0.14136852586848),
+        {},
+        1.0416666666667,
+        EnemyStats(fire_resistance=50),
+        hit_range=AilmentHitRange(
+            403, 605, 926.9, 1391.5, crit_chance_pct=7, chance_on_crit_pct=0.3251476094975
+        ),
+    )
+    assert r["roll_average_pct"] == 50.0
+    assert r["sustained_dps"] == pytest.approx(0.386025, rel=1e-3)
