@@ -211,7 +211,7 @@ class ResourceCalculator:
             modifiers = ResourceModifiers()
 
         # Calculate base life
-        base_life = (
+        base_life: float = (
             self.BASE_LIFE_AT_LEVEL_1
             + (self.LIFE_PER_LEVEL * self.level)
             + (self.LIFE_PER_STRENGTH * self.attributes.strength)
@@ -253,7 +253,7 @@ class ResourceCalculator:
             modifiers = ResourceModifiers()
 
         # Calculate base mana
-        base_mana = (
+        base_mana: float = (
             self.BASE_MANA_AT_LEVEL_1
             + (self.MANA_PER_LEVEL * self.level)
             + (self.MANA_PER_INTELLIGENCE * self.attributes.intelligence)
@@ -369,7 +369,7 @@ class ResourceCalculator:
             modifiers = ResourceModifiers()
 
         # Base Spirit from quest rewards
-        base_spirit = self.BASE_SPIRIT_FROM_QUESTS
+        base_spirit: float = self.BASE_SPIRIT_FROM_QUESTS
 
         # Add flat bonuses (primarily from gear and passives)
         base_spirit += modifiers.flat_bonus
@@ -555,7 +555,7 @@ class ResourceCalculator:
             Accuracy rating (integer)
         """
         # Calculate base accuracy
-        base_accuracy = (self.ACCURACY_PER_LEVEL * self.level) + (
+        base_accuracy: float = (self.ACCURACY_PER_LEVEL * self.level) + (
             self.ACCURACY_PER_DEXTERITY * self.attributes.dexterity
         )
 

@@ -77,6 +77,7 @@ class Settings(BaseSettings):
     # Third-party APIs
     POE_NINJA_API: str = Field(default="https://poe.ninja/api")
     POE_NINJA_PROFILE_URL: str = Field(default="https://poe.ninja")
+    POE2DB_BASE_URL: str = Field(default="https://poe2db.tw")
     POE_OFFICIAL_API: str = Field(default="https://www.pathofexile.com")
     TRADE_API_URL: str = Field(default="https://www.pathofexile.com/trade2/search/poe2")
     REQUEST_TIMEOUT: int = Field(default=30)

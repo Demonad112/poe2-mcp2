@@ -5,7 +5,7 @@ Creates comprehensive analysis reports for Path of Exile 2 characters
 
 import logging
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ class ReportGenerator:
         self,
         character_data: Dict[str, Any],
         analysis: Dict[str, Any],
-        gear_recommendations: list = None,
+        gear_recommendations: Optional[List[Any]] = None,
     ) -> str:
         """
         Generate a comprehensive markdown report

@@ -35,6 +35,7 @@ GitHub Releases bundle. Code update checks hit only the GitHub API / origin.
 
 from __future__ import annotations
 
+import importlib
 import json
 import logging
 import os
@@ -47,7 +48,7 @@ from typing import Any, Dict, List, Optional
 try:  # package import (normal runtime)
     from . import data_distributor as _dd
 except ImportError:  # direct-execution fallback
-    import data_distributor as _dd  # type: ignore
+    _dd = importlib.import_module("data_distributor")
 
 logger = logging.getLogger(__name__)
 

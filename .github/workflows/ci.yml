@@ -142,4 +142,4 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt mypy
       - name: mypy
-        run: mypy src/pob/ src/mcp_server.py
+        run: mypy src/

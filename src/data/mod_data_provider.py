@@ -349,7 +349,7 @@ class ModDataProvider:
                 "conflicts": List[Tuple[str, str]]
             }
         """
-        result = {"valid": True, "errors": [], "warnings": [], "conflicts": []}
+        result: Dict[str, Any] = {"valid": True, "errors": [], "warnings": [], "conflicts": []}
 
         if not mod_ids:
             result["errors"].append("No mods provided")
@@ -370,9 +370,9 @@ class ModDataProvider:
             return result
 
         # Check mod family conflicts (can't have Strength1 and Strength2)
-        families_seen = {}
+        families_seen: Dict[str, str] = {}
         for mod in mods:
-            mod_id = mod.get("mod_id")
+            mod_id = str(mod.get("mod_id", ""))
             family = self._extract_mod_family(mod_id)
 
             if family in families_seen:
