@@ -505,6 +505,8 @@ class PoE2BuildOptimizerMCP:
                 return await self._handle_find_stat_sources(arguments)
             elif name == "calculate_character_dps":
                 return await self._handle_calculate_character_dps(arguments)
+            elif name == "calculate_ehp":
+                return await self._handle_calculate_ehp(arguments)
             elif name == "validate_support_combination":
                 return await self._handle_validate_support_combination(arguments)
             elif name == "validate_build_constraints":
@@ -1077,19 +1079,44 @@ class PoE2BuildOptimizerMCP:
                 types.Tool(
                     name="calculate_character_dps",
                     description=(
-                        "Compute spell DPS server-side using PoE2 formulas. "
-                        "Accepts an aggregated set of modifiers (sum of increased %, "
-                        "list of more multipliers, added flat damage, crit, cast speed, "
-                        "optional enemy resistances) and returns a structured DPS "
-                        "breakdown — base damage, increased/more multipliers, crit "
-                        "expected hit, post-resistance final, casts/sec, DPS. The math "
-                        "lives in src/calculator/spell_dps_calculator.py and is the "
-                        "single source of truth. Use this instead of asking the AI to "
-                        "do the math in its head."
+                        "DPS calculation. PoB-exact via the headless PoB2 engine when a "
+                        "build is supplied (pob_file_path, or character_data/char_model "
+                        "carrying pathOfBuildingExport) and the engine is ready; otherwise "
+                        "a Python approximation from pre-aggregated modifiers (sum of "
+                        "increased %, list of more multipliers, added flat damage, crit, "
+                        "cast speed, optional enemy resistances), labelled "
+                        "'[approximate: ...]'. The Python math lives in "
+                        "src/calculator/spell_dps_calculator.py. Use this instead of "
+                        "asking the AI to do the math in its head."
                     ),
                     inputSchema={
                         "type": "object",
                         "properties": {
+                            "pob_file_path": {
+                                "type": "string",
+                                "description": "Path to a file holding a PoB2 export code or XML. Routes to the PoB-exact headless engine when ready (response has source=headless_pob, exact=true).",
+                            },
+                            "character_data": {
+                                "type": "object",
+                                "description": "Character dict; if it carries pathOfBuildingExport (top level or under charModel) it is routed to the headless engine.",
+                            },
+                            "char_model": {
+                                "type": "object",
+                                "description": "poe.ninja charModel; pathOfBuildingExport inside it routes to the headless engine.",
+                            },
+                            "config": {
+                                "type": "object",
+                                "description": "Headless config what-ifs (enemy level, shock, exposure, charges...) applied before calculating. Ignored on the Python fallback.",
+                            },
+                            "fields": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Headless output stat names to return (keeps output small). Ignored on the Python fallback.",
+                            },
+                            "level": {
+                                "type": "integer",
+                                "description": "Character level override for the headless engine.",
+                            },
                             "spell_name": {
                                 "type": "string",
                                 "description": (
@@ -1115,7 +1142,9 @@ class PoE2BuildOptimizerMCP:
                                     "Override spell base stats. Shape: "
                                     "{base_damage_min, base_damage_max, "
                                     "damage_effectiveness, base_crit_chance, "
-                                    "base_cast_time, damage_types (list)}."
+                                    "base_cast_time, damage_types (list), is_channelled, repeats}. "
+                                    "is_channelled skips the PoB server-tick speed cap; "
+                                    "repeats multiplies it (default 1)."
                                 ),
                             },
                             "increased_spell_damage": {
@@ -1145,7 +1174,7 @@ class PoE2BuildOptimizerMCP:
                             },
                             "increased_crit_chance": {
                                 "type": "number",
-                                "description": "Sum of all %increased crit chance (multiplies base crit, PoB semantics). Default 0.",
+                                "description": "Sum of all %increased crit chance. Multiplies (base + added_crit_chance), matching PoB; NOT a flat addition (changed in #16). Default 0.",
                             },
                             "more_crit_chance": {"type": "number", "description": "%more crit chance. Default 0."},
                             "added_crit_chance": {"type": "number", "description": "Flat crit chance added to base before scaling. Default 0."},
@@ -1178,7 +1207,8 @@ class PoE2BuildOptimizerMCP:
                                     "physical_resistance, fire_exposure, "
                                     "cold_exposure, lightning_exposure, "
                                     "fire_penetration, cold_penetration, "
-                                    "lightning_penetration, is_shocked}. "
+                                    "lightning_penetration, is_shocked, shock_magnitude, "
+                                    "increased_damage_taken}. "
                                     "Defaults to a target dummy (all zeros)."
                                 ),
                             },
@@ -1207,6 +1237,50 @@ class PoE2BuildOptimizerMCP:
                                     "aggravated. Non-stacking ailments cap at 1 active."
                                 ),
                             },
+                        },
+                        "required": [],
+                    },
+                ),
+                types.Tool(
+                    name="calculate_ehp",
+                    description=(
+                        "Effective health pool / max-hit analysis. PoB-exact via the headless "
+                        "PoB2 engine when a build is supplied (pob_file_path, or character_data/"
+                        "char_model with pathOfBuildingExport); otherwise a Python approximation "
+                        "from character_data stats (life, energy_shield, *_res, armor, evasion, "
+                        "block_chance), labelled '[approximate: ...]'."
+                    ),
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "pob_file_path": {
+                                "type": "string",
+                                "description": "Path to a file holding a PoB2 export code or XML. Routes to the PoB-exact headless engine when ready (response has source=headless_pob, exact=true).",
+                            },
+                            "character_data": {
+                                "type": "object",
+                                "description": "Character dict; if it carries pathOfBuildingExport (top level or under charModel) it is routed to the headless engine.",
+                            },
+                            "char_model": {
+                                "type": "object",
+                                "description": "poe.ninja charModel; pathOfBuildingExport inside it routes to the headless engine.",
+                            },
+                            "config": {
+                                "type": "object",
+                                "description": "Headless config what-ifs (enemy level, shock, exposure, charges...) applied before calculating. Ignored on the Python fallback.",
+                            },
+                            "fields": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Headless output stat names to return (keeps output small). Ignored on the Python fallback.",
+                            },
+                            "level": {
+                                "type": "integer",
+                                "description": "Character level override for the headless engine.",
+                            },
+                            "account": {"type": "string", "description": "Account name (fetch character from API; Python path)."},
+                            "character": {"type": "string", "description": "Character name (with account)."},
+                            "league": {"type": "string", "description": "League for the API fetch."},
                         },
                         "required": [],
                     },
@@ -3219,9 +3293,7 @@ Consider:
                 response += "## 🛡️ Defensive Analysis\n\n"
                 ehp_result = await self._handle_calculate_ehp({"character_data": character_data})
                 if ehp_result and ehp_result[0].text:
-                    ehp_text = ehp_result[0].text
-                    if "# Effective Health Pool Analysis" in ehp_text:
-                        ehp_text = ehp_text.split("# Effective Health Pool Analysis", 1)[1]
+                    ehp_text = self._ehp_text_for_report(ehp_result[0].text)
                     response += ehp_text + "\n\n"
 
             # 3. Spirit Optimization
@@ -4331,6 +4403,35 @@ Consider:
         label = "[approximate: Python fallback, not PoB-exact; pass pob_file_path with the headless engine ready for exact numbers]\n"
         return [types.TextContent(type="text", text=label + "\n".join(getattr(t, "text", "") for t in out))]
 
+    @staticmethod
+    def _ehp_text_for_report(text: str) -> str:
+        """Normalise _handle_calculate_ehp output for embedding in a markdown report.
+        Headless output is JSON -> render it as markdown; Python output -> strip its H1."""
+        marker = "# Effective Health Pool Analysis"
+        if marker in text:
+            return text.split(marker, 1)[1]
+        try:
+            data = json.loads(text)
+        except (ValueError, TypeError):
+            return text
+        if not isinstance(data, dict):
+            return text
+        stats = data.get("stats") if isinstance(data.get("stats"), dict) else {
+            k: v for k, v in data.items() if isinstance(v, (int, float, str))
+        }
+        out = [" (PoB-exact, headless engine)\n"]
+        for label, key in (("Life", "Life"), ("Energy Shield", "EnergyShield"), ("Armour", "Armour"),
+                           ("Evasion", "Evasion"), ("Evade chance %", "EvadeChance"),
+                           ("Fire res %", "FireResist"), ("Cold res %", "ColdResist"),
+                           ("Lightning res %", "LightningResist"), ("Chaos res %", "ChaosResist"),
+                           ("Max hit Physical", "PhysicalMaximumHitTaken"), ("Max hit Fire", "FireMaximumHitTaken"),
+                           ("Max hit Cold", "ColdMaximumHitTaken"), ("Max hit Lightning", "LightningMaximumHitTaken"),
+                           ("Max hit Chaos", "ChaosMaximumHitTaken"), ("Total EHP", "TotalEHP")):
+            if key in stats and stats[key] is not None:
+                v = stats[key]
+                out.append(f"- **{label}:** {v:,.0f}" if isinstance(v, (int, float)) else f"- **{label}:** {v}")
+        return "\n".join(out) if len(out) > 1 else "\n```json\n" + text + "\n```"
+
     async def _handle_calculate_character_dps(self, args: dict) -> List[types.TextContent]:
         return await self._route_headless_first(args, self._HEADLESS_DPS_FIELDS, self._calculate_character_dps_python)
 
@@ -4385,6 +4486,8 @@ Consider:
                     base_crit_chance=float(spell_stats_override.get("base_crit_chance", 0)),
                     base_cast_time=float(spell_stats_override.get("base_cast_time", 1.0)),
                     damage_types=list(spell_stats_override.get("damage_types") or []),
+                    is_channelled=bool(spell_stats_override.get("is_channelled", False)),
+                    repeats=int(spell_stats_override.get("repeats", 1) or 1),
                 )
                 spell_source = "caller-supplied spell_stats"
             elif spell_name:
@@ -4422,6 +4525,7 @@ Consider:
                         base_crit_chance=v2["base_crit_chance"],
                         base_cast_time=v2["base_cast_time"],
                         damage_types=v2["damage_types"],
+                        is_channelled=bool(v2.get("is_channelled", False)),
                     )
                     spell_source = (
                         f"data/game/skill_gems/skill_gems_v2.json -> "
@@ -4478,6 +4582,7 @@ Consider:
                 lightning_penetration=float(enemy_in.get("lightning_penetration", 0)),
                 is_shocked=bool(enemy_in.get("is_shocked", False)),
                 shock_magnitude=float(enemy_in.get("shock_magnitude", 20)),
+                increased_damage_taken=float(enemy_in.get("increased_damage_taken", 0)),
             )
 
             # ---- Run the math ----
