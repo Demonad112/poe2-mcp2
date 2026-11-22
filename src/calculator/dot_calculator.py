@@ -423,7 +423,7 @@ def build_ailment_hit_range(
         sum(max(v, 0.0) for t, v in added_by_type.items() if t.lower() in basis)
         * damage_effectiveness
     )
-    primary_in_basis = bool(primary_type) and primary_type.lower() in basis
+    primary_in_basis = primary_type is not None and primary_type.lower() in basis
     lo = added_basis + (base_damage_min if primary_in_basis else 0.0)
     hi = added_basis + (base_damage_max if primary_in_basis else 0.0)
     if hi <= 0:
