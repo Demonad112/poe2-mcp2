@@ -27,13 +27,13 @@ class RateLimiter:
         self.adaptive = adaptive
 
         # Token bucket
-        self.tokens = burst
-        self.max_tokens = burst
+        self.tokens: float = float(burst)
+        self.max_tokens: float = float(burst)
         self.last_update = time.time()
 
         # Adaptive rate limiting
         self.consecutive_failures = 0
-        self.current_backoff = 1.0
+        self.current_backoff: float = 1.0
 
         # Statistics
         self.total_requests = 0

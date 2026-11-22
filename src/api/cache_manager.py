@@ -35,7 +35,7 @@ class CacheManager:
         self.max_memory_items = 1000
 
         # L2: Redis client (optional)
-        self.redis_client = None
+        self.redis_client: Any = None
 
         # L3: SQLite cache
         self.sqlite_path = CACHE_DIR / "cache.db"
@@ -91,7 +91,10 @@ class CacheManager:
 
     async def _init_sqlite_schema(self):
         """Initialize SQLite cache schema"""
-        await self.sqlite_conn.execute(
+        conn = self.sqlite_conn
+        if conn is None:
+            raise RuntimeError("SQLite connection not initialized")
+        await conn.execute(
             """
             CREATE TABLE IF NOT EXISTS cache (
                 key TEXT PRIMARY KEY,
@@ -101,13 +104,13 @@ class CacheManager:
             )
         """
         )
-        await self.sqlite_conn.execute(
+        await conn.execute(
             """
             CREATE INDEX IF NOT EXISTS idx_expires_at
             ON cache(expires_at)
         """
         )
-        await self.sqlite_conn.commit()
+        await conn.commit()
 
     async def get(self, key: str) -> Optional[Any]:
         """
