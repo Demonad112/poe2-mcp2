@@ -11,6 +11,7 @@ This module provides comprehensive defense calculations including:
 All formulas are specific to Path of Exile 2 and differ from PoE1 in key areas.
 """
 
+import math
 import logging
 from dataclasses import dataclass
 from typing import Any, Dict
@@ -302,6 +303,10 @@ class DefenseCalculator:
             if denominator > 0
             else 100.0
         )
+
+        # PoB rounds the hit chance to an integer (round-half-up) before capping
+        # (CalcDefence.lua calcs.monsterHitChance), so evade chance is an integer too.
+        hit_chance_percent = float(math.floor(hit_chance_percent + 0.5))
 
         # Apply caps
         is_hit_capped = False

@@ -341,3 +341,10 @@ def test_evasion_needed_inverts_monster_hit_chance(calc):
 def test_evasion_matches_pob_reference_point(calc):
     """PoB calcs.monsterHitChance(2000, 2000) = 81% hit -> 19% evade (audit item 1)."""
     assert math.isclose(calc.calculate_evasion_chance(2000, 2000).evade_chance_percent, 19.0, abs_tol=0.5)
+
+
+def test_evade_chance_rounded_like_pob():
+    from src.calculator.defense_calculator import DefenseCalculator
+    r = DefenseCalculator().calculate_evasion_chance(5000, 2000)
+    assert r.evade_chance_percent == int(r.evade_chance_percent)
+    assert r.hit_chance_percent == int(r.hit_chance_percent)
