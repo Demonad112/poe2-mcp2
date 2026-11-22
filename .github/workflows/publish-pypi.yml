@@ -20,6 +20,11 @@ concurrency:
 
 jobs:
   publish:
+    # The `poe2-mcp` PyPI project and its Trusted Publisher belong to the upstream
+    # repo. On a fork the OIDC exchange fails with `invalid-publisher` on every
+    # merge, so skip unless this is upstream or the fork opts in (repo variable
+    # PYPI_PUBLISH=true, after registering its own trusted publisher + package name).
+    if: github.repository == 'HivemindOverlord/poe2-mcp' || vars.PYPI_PUBLISH == 'true'
     runs-on: ubuntu-latest
     permissions:
       id-token: write   # required for PyPI Trusted Publishing (OIDC) — no stored token
