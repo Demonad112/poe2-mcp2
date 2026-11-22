@@ -31,7 +31,7 @@ from __future__ import annotations
 import logging
 import shutil
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -165,7 +165,7 @@ def _bundled_addon_source() -> Optional[Path]:
     return None
 
 
-def is_addon_installed(pob_path: Path) -> Dict[str, object]:
+def is_addon_installed(pob_path: Path) -> Dict[str, Any]:
     """
     Report addon deployment state for a given PoB install.
 
@@ -239,7 +239,7 @@ def install_addon(
     pob_path: Optional[Path] = None,
     source_dir: Optional[Path] = None,
     overwrite: bool = True,
-) -> Dict[str, object]:
+) -> Dict[str, Any]:
     """
     Install the MCP Bridge addon into a PoB (PoE2) installation.
 
@@ -327,7 +327,7 @@ def install_addon(
     }
 
 
-def uninstall_addon(pob_path: Optional[Path] = None) -> Dict[str, object]:
+def uninstall_addon(pob_path: Optional[Path] = None) -> Dict[str, Any]:
     """
     Remove the addon and restore Launch.lua from backup (or strip the loader line).
     """
@@ -368,7 +368,7 @@ def uninstall_addon(pob_path: Optional[Path] = None) -> Dict[str, object]:
     }
 
 
-def ensure_installed(pob_path: Optional[Path] = None) -> Dict[str, object]:
+def ensure_installed(pob_path: Optional[Path] = None) -> Dict[str, Any]:
     """
     Make the addon survive PoB updates by auto-repairing it.
 
@@ -428,7 +428,7 @@ def get_bridge_status(
     host: str = "127.0.0.1",
     port: int = 49085,
     pob_path: Optional[Path] = None,
-) -> Dict[str, object]:
+) -> Dict[str, Any]:
     """
     One-shot status: is PoB installed, is the addon deployed, and is the live
     bridge reachable right now?

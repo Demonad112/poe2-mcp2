@@ -9,7 +9,7 @@ Provides:
 
 import json
 from dataclasses import dataclass
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Callable, Dict, List, Literal, Mapping, Optional
 
 # Detail levels
 DetailLevel = Literal["summary", "standard", "full"]
@@ -142,7 +142,7 @@ def format_list_response(
     meta: PaginationMeta,
     title: str,
     format: OutputFormat = "markdown",
-    item_formatter: Optional[callable] = None,
+    item_formatter: Optional[Callable[[Dict[str, Any]], str]] = None,
 ) -> str:
     """
     Format a list response with pagination.
@@ -210,7 +210,7 @@ BASE_ITEM_FIELDS = {
 
 
 def filter_fields(
-    item: Dict[str, Any], detail: DetailLevel, field_mapping: Dict[str, List[str]]
+    item: Dict[str, Any], detail: DetailLevel, field_mapping: Mapping[str, Optional[List[str]]]
 ) -> Dict[str, Any]:
     """Filter item fields based on detail level"""
     fields = field_mapping.get(detail)

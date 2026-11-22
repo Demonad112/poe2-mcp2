@@ -17,7 +17,7 @@ import math
 from dataclasses import dataclass, field
 from itertools import combinations
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Sequence, Tuple, Union, overload
 
 # Import fresh data provider - Single Source of Truth
 try:
@@ -236,7 +236,9 @@ class GemSynergyCalculator:
         self._spell_aliases: Dict[str, str] = {}
         self._support_aliases: Dict[str, str] = {}
         self._fresh_provider = get_fresh_data_provider()
-        self._pob_skills = {}  # Cache for PoB complete skills with constantStats
+        self._pob_skills: Dict[str, Dict[str, Any]] = (
+            {}
+        )  # Cache for PoB complete skills with constantStats
 
         # Try to load from FreshDataProvider first (SSoT)
         self._load_from_fresh_provider()
@@ -466,7 +468,7 @@ class GemSynergyCalculator:
         Returns:
             Dict of parsed stats for SupportGemEffect
         """
-        stats = {
+        stats: Dict[str, Any] = {
             "more_damage": 0.0,
             "more_cast_speed": 0.0,
             "more_aoe": 0.0,
@@ -485,7 +487,7 @@ class GemSynergyCalculator:
 
         # Mapping of stat IDs to our stat fields
         # Format: stat_id -> (field_name, multiplier)
-        stat_mapping = {
+        stat_mapping: Dict[str, Tuple[str, Any]] = {
             # More multipliers (multiplicative)
             "support_gem_damage_+%_final": ("more_damage", 1.0),
             "support_gem_elemental_damage_+%_final": ("more_damage", 1.0),
@@ -617,7 +619,7 @@ class GemSynergyCalculator:
         if not isinstance(primary_stat_set, dict):
             return []
 
-        const_stats = primary_stat_set.get("constantStats", [])
+        const_stats: List[Tuple[str, Any]] = primary_stat_set.get("constantStats", [])
         return const_stats
 
     def get_skill_damage_effectiveness(self, skill_name: str) -> Dict[str, float]:
@@ -725,6 +727,31 @@ class GemSynergyCalculator:
         except Exception as e:
             logger.error(f"Failed to load support database from {path}: {e}", exc_info=True)
 
+    @overload
+    def find_best_combinations(
+        self,
+        spell_name: str,
+        character_mods: Optional[Dict[str, float]] = None,
+        max_spirit: int = 100,
+        num_supports: int = 5,
+        optimization_goal: str = "dps",
+        top_n: int = 10,
+        return_trace: Literal[False] = False,
+    ) -> List[SynergyResult]: ...
+
+    @overload
+    def find_best_combinations(
+        self,
+        spell_name: str,
+        character_mods: Optional[Dict[str, float]] = None,
+        max_spirit: int = 100,
+        num_supports: int = 5,
+        optimization_goal: str = "dps",
+        top_n: int = 10,
+        *,
+        return_trace: Literal[True],
+    ) -> Dict[str, Any]: ...
+
     def find_best_combinations(
         self,
         spell_name: str,
@@ -754,7 +781,7 @@ class GemSynergyCalculator:
         if character_mods is None:
             character_mods = {}
 
-        trace_data = {
+        trace_data: Dict[str, Any] = {
             "spell_found": False,
             "compatible_supports_count": 0,
             "compatible_supports": [],
@@ -862,7 +889,7 @@ class GemSynergyCalculator:
 
         return compatible
 
-    def _is_valid_combination(self, support_combo: List[Tuple[str, SupportGemEffect]]) -> bool:
+    def _is_valid_combination(self, support_combo: Sequence[Tuple[str, SupportGemEffect]]) -> bool:
         """Check if a combination of supports is valid (no conflicts)"""
         support_names = [s[0] for s in support_combo]
 
@@ -1031,7 +1058,7 @@ class GemSynergyCalculator:
         if character_mods is None:
             character_mods = {}
 
-        trace = {
+        trace: Dict[str, Any] = {
             "spell": {},
             "supports": [],
             "calculations": {},
