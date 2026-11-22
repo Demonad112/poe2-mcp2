@@ -105,7 +105,7 @@ class DamageScalingAnalyzer:
 
         return recommendations
 
-    def _extract_stats(self, character_data: Dict[str, Any], skill_type: str) -> Dict[str, float]:
+    def _extract_stats(self, character_data: Dict[str, Any], skill_type: str) -> Dict[str, Any]:
         """Extract relevant stats from character data"""
         stats = {
             # Base damage
@@ -144,7 +144,7 @@ class DamageScalingAnalyzer:
 
         return stats
 
-    def _calculate_dps_breakdown(self, stats: Dict[str, float], skill_type: str) -> DPSBreakdown:
+    def _calculate_dps_breakdown(self, stats: Dict[str, Any], skill_type: str) -> DPSBreakdown:
         """Calculate DPS with full breakdown"""
         # Step 1: Base damage
         base = stats["base_damage"]
@@ -207,7 +207,7 @@ class DamageScalingAnalyzer:
         )
 
     def _analyze_increased_damage(
-        self, stats: Dict[str, float], dps_breakdown: DPSBreakdown, skill_type: str
+        self, stats: Dict[str, Any], dps_breakdown: DPSBreakdown, skill_type: str
     ) -> List[ScalingRecommendation]:
         """Analyze increased damage scaling"""
         recommendations = []
@@ -256,7 +256,7 @@ class DamageScalingAnalyzer:
         return recommendations
 
     def _analyze_more_multipliers(
-        self, stats: Dict[str, float], dps_breakdown: DPSBreakdown, skill_type: str
+        self, stats: Dict[str, Any], dps_breakdown: DPSBreakdown, skill_type: str
     ) -> List[ScalingRecommendation]:
         """Analyze more multipliers"""
         recommendations = []
@@ -301,7 +301,7 @@ class DamageScalingAnalyzer:
         return recommendations
 
     def _analyze_crit_scaling(
-        self, stats: Dict[str, float], dps_breakdown: DPSBreakdown, skill_type: str
+        self, stats: Dict[str, Any], dps_breakdown: DPSBreakdown, skill_type: str
     ) -> List[ScalingRecommendation]:
         """Analyze critical strike scaling"""
         recommendations = []
@@ -358,7 +358,7 @@ class DamageScalingAnalyzer:
         return recommendations
 
     def _analyze_added_damage(
-        self, stats: Dict[str, float], dps_breakdown: DPSBreakdown, skill_type: str
+        self, stats: Dict[str, Any], dps_breakdown: DPSBreakdown, skill_type: str
     ) -> List[ScalingRecommendation]:
         """Analyze added flat damage"""
         recommendations = []
@@ -397,7 +397,7 @@ class DamageScalingAnalyzer:
         return recommendations
 
     def _analyze_cast_attack_speed(
-        self, stats: Dict[str, float], dps_breakdown: DPSBreakdown, skill_type: str
+        self, stats: Dict[str, Any], dps_breakdown: DPSBreakdown, skill_type: str
     ) -> List[ScalingRecommendation]:
         """Analyze cast/attack speed"""
         recommendations = []
@@ -473,7 +473,12 @@ class DamageScalingAnalyzer:
         lines.append("")
 
         # Group by priority
-        by_priority = {"critical": [], "high": [], "medium": [], "low": []}
+        by_priority: Dict[str, List[ScalingRecommendation]] = {
+            "critical": [],
+            "high": [],
+            "medium": [],
+            "low": [],
+        }
 
         for rec in recommendations:
             by_priority[rec.priority].append(rec)

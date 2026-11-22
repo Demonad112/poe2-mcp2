@@ -99,7 +99,7 @@ class CharacterComparator:
         """Normalize skill name for comparison"""
         return name.lower().strip().replace("'", "").replace("-", " ")
 
-    def _is_support_gem(self, name: str) -> str:
+    def _is_support_gem(self, name: str) -> bool:
         """Check if gem is a support gem"""
         support_keywords = [
             "support",
@@ -129,9 +129,9 @@ class CharacterComparator:
         user_skill_groups = user_char.get("skills", [])
 
         # Analyze what top players are doing
-        common_support_gems = defaultdict(int)
-        common_skill_links = defaultdict(int)
-        avg_gem_levels = defaultdict(list)
+        common_support_gems: Dict[str, int] = defaultdict(int)
+        common_skill_links: Dict[str, int] = defaultdict(int)
+        gem_levels: Dict[str, List[int]] = defaultdict(list)
 
         for char in top_chars:
             for skill_group in char.get("skills", []):
@@ -146,11 +146,13 @@ class CharacterComparator:
                     # Track gem levels
                     level = self._extract_gem_level(gem)
                     if level:
-                        avg_gem_levels[name].append(level)
+                        gem_levels[name].append(level)
 
         # Calculate averages
-        for gem, levels in avg_gem_levels.items():
-            avg_gem_levels[gem] = sum(levels) / len(levels) if levels else 0
+        avg_gem_levels: Dict[str, float] = {
+            gem: (sum(levels) / len(levels) if levels else 0.0)
+            for gem, levels in gem_levels.items()
+        }
 
         return {
             "user_main_skills": list(user_skills),
@@ -158,7 +160,7 @@ class CharacterComparator:
             "common_supports_in_top_players": dict(
                 sorted(common_support_gems.items(), key=lambda x: x[1], reverse=True)[:10]
             ),
-            "avg_gem_levels": dict(avg_gem_levels),
+            "avg_gem_levels": avg_gem_levels,
             "recommendations": self._generate_skill_recommendations(
                 user_char, common_support_gems, avg_gem_levels
             ),
@@ -191,9 +193,9 @@ class CharacterComparator:
         user_uniques = self._extract_unique_items(user_items)
 
         # Track what top players use
-        unique_usage = defaultdict(int)
-        unique_by_slot = defaultdict(lambda: defaultdict(int))
-        mod_priorities = defaultdict(int)
+        unique_usage: Dict[str, int] = defaultdict(int)
+        unique_by_slot: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
+        mod_priorities: Dict[str, int] = defaultdict(int)
 
         for char in top_chars:
             items = char.get("items", [])
@@ -336,22 +338,22 @@ class CharacterComparator:
         """Compare passive tree allocations"""
 
         user_passives = user_char.get("passive_tree", user_char.get("passives", {}))
-        user_nodes = set()
+        user_nodes: Set[Any] = set()
 
         if isinstance(user_passives, dict):
-            user_nodes = set(user_passives.get("hashes", user_passives.get("nodes", [])))
+            user_nodes = set(user_passives.get("hashes", user_passives.get("nodes", [])) or [])
         elif isinstance(user_passives, list):
             user_nodes = set(user_passives)
 
         # Track common nodes in top players
-        node_usage = defaultdict(int)
+        node_usage: Dict[Any, int] = defaultdict(int)
 
         for char in top_chars:
             passives = char.get("passive_tree", char.get("passives", {}))
-            nodes = set()
+            nodes: Set[Any] = set()
 
             if isinstance(passives, dict):
-                nodes = set(passives.get("hashes", passives.get("nodes", [])))
+                nodes = set(passives.get("hashes", passives.get("nodes", [])) or [])
             elif isinstance(passives, list):
                 nodes = set(passives)
 
@@ -534,8 +536,8 @@ class CharacterComparator:
     def _avg_level(self, characters: List[Dict[str, Any]]) -> float:
         """Calculate average level"""
         if not characters:
-            return 0
-        return sum(c.get("level", 0) for c in characters) / len(characters)
+            return 0.0
+        return float(sum(c.get("level", 0) for c in characters) / len(characters))
 
     def _level_range(self, characters: List[Dict[str, Any]]) -> tuple:
         """Get level range"""
