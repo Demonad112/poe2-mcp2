@@ -58,7 +58,7 @@ jobs:
           set +e
           python -m pytest -m "not (network or pob_required or requires_game_data)" -q -p no:cacheprovider -rfE | tee pytest-offline.txt
           set -e
-          python scripts/check_test_baseline.py pytest-offline.txt
+          python scripts/baseline_gate.py pytest-offline.txt
 
   # ---- Golden/engine: runs the PoB-exact tests when LuaJIT + the pinned PoB2 can be built -------
   # scripts/setup_headless_pob.sh builds the pinned LuaJIT and fetches the pinned PoB2 commit. If the
