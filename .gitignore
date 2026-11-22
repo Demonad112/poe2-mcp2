@@ -310,6 +310,8 @@ optimal_*.py
 # Investigation/analysis directories
 analysis/
 builds/
+!tests/fixtures/builds/
+!tests/fixtures/builds/**
 ooz/
 
 # Intermediate data files

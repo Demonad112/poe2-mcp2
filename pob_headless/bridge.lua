@@ -116,13 +116,19 @@ handlers.get_stats = function(p)
   if sk and sk.activeEffect and sk.activeEffect.grantedEffect then
     main.skill = sk.activeEffect.grantedEffect.name
   end
+  local stats = scalars(out, p.fields)
+  -- Per-hand pass outputs (weapon attacks): "MainHand.<Stat>" / "OffHand.<Stat>" read out.MainHand / out.OffHand.
+  for _, f in ipairs(type(p.fields) == 'table' and p.fields or {}) do
+    local hand, sub = tostring(f):match('^(%a+Hand)%.(.+)$')
+    if hand and type(out[hand]) == 'table' and type(out[hand][sub]) == 'number' then stats[f] = out[hand][sub] end
+  end
   return {
     ok = true,
     level = build.characterLevel,
     class = build.spec and build.spec.curClassName,
     ascendancy = build.spec and build.spec.curAscendClassName,
     main = main,
-    stats = scalars(out, p.fields),
+    stats = stats,
   }
 end
 
@@ -135,9 +141,25 @@ handlers.sum_mod = function(p)
   local names = p.names
   if type(names) ~= 'table' or #names == 0 then error('names (array) required') end
   local kind = p.mod_type or 'BASE'
-  local db = (p.db == 'enemy') and env.enemyDB or env.modDB
+  -- db: "mod" (default, player modDB) | "enemy" (enemyDB) | "skill" (main skill's skillModList).
+  -- cfg: "skill" evaluates conditional/tagged mods with the main skill's cfg (what CalcOffence does);
+  -- default nil. db="skill" always uses the skill cfg. mod_type "MORE" returns the product of More().
+  local db, cfg = env.modDB, nil
+  local ms = env.player and env.player.mainSkill
+  if p.db == 'enemy' then
+    db = env.enemyDB
+  elseif p.db == 'skill' then
+    if not (ms and ms.skillModList) then error('no main skill') end
+    db = ms.skillModList
+  end
+  if p.db == 'skill' or p.cfg == 'skill' then
+    -- CalcOffence evaluates weapon attacks with weapon1Cfg (main hand) and everything else with skillCfg.
+    cfg = ms and (ms.weapon1Cfg or ms.skillCfg) or nil
+  end
   local res = {}
-  for _, n in ipairs(names) do res[n] = db:Sum(kind, nil, n) end
+  for _, n in ipairs(names) do
+    if kind == 'MORE' then res[n] = db:More(cfg, n) else res[n] = db:Sum(kind, cfg, n) end
+  end
   return { ok = true, sums = res }
 end
 

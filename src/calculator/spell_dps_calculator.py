@@ -27,6 +27,8 @@ class SpellStats:
     base_crit_chance: float = 0.0  # 0-100%
     base_cast_time: float = 1.0  # seconds
     damage_types: List[str] = None  # ['fire', 'cold', 'lightning', etc.]
+    is_channelled: bool = False  # PoB: Channel skills are exempt from the server-tick speed cap
+    repeats: int = 1  # PoB: server-tick cap is multiplied by the skill's Repeats
 
     def __post_init__(self) -> None:
         if self.damage_types is None:
@@ -91,14 +93,18 @@ class EnemyStats:
     # Modifiers
     is_shocked: bool = False
     shock_magnitude: float = 20.0  # PoB BaseShockMagnitude (Data/Misc.lua), clamped 20..100
+    # %increased damage taken (curses, etc.). PoB adds shock to this as one DamageTaken INC pool.
+    increased_damage_taken: float = 0.0
 
+    def shock_multiplier(self) -> float:
+        """Shock-only multiplier: 1 + magnitude/100; magnitude 20 (Base) .. 100 (Max)."""
+        return 1.0 + max(20.0, min(100.0, self.shock_magnitude)) / 100.0
 
-def _shock_multiplier(self) -> float:
-    """PoB: damage taken x (1 + magnitude/100); magnitude 20 (Base) .. 100 (Max)."""
-    return 1.0 + max(20.0, min(100.0, self.shock_magnitude)) / 100.0
-
-
-EnemyStats.shock_multiplier = _shock_multiplier  # type: ignore[attr-defined]
+    def damage_taken_multiplier(self) -> float:
+        """PoB CalcPerform: shock is an INC to DamageTaken, additive with other increased damage
+        taken: 1 + (inc_taken + shock_magnitude)/100. Equals 1.0 with no shock and 0 inc taken."""
+        shock = max(20.0, min(100.0, self.shock_magnitude)) if self.is_shocked else 0.0
+        return max(0.0, 1.0 + (self.increased_damage_taken + shock) / 100.0)
 
 # PoB data.misc.ServerTickRate = 1 / 0.033 (Modules/Data.lua)
 SERVER_TICK_RATE = 1 / 0.033
@@ -208,12 +214,12 @@ class SpellDPSCalculator:
             )
 
             # Step 8: Apply Shock if applicable
-            if enemy.is_shocked:
-                damage_after_resistance *= enemy.shock_multiplier()
+            damage_after_resistance *= enemy.damage_taken_multiplier()
 
             # Step 9: Calculate DPS (damage × casts per second)
             cast_speed = self._calculate_cast_speed(
-                spell.base_cast_time, char_mods.increased_cast_speed
+                spell.base_cast_time, char_mods.increased_cast_speed,
+                is_channelled=spell.is_channelled, repeats=spell.repeats,
             )
             dps = damage_after_resistance * cast_speed
 
@@ -425,7 +431,8 @@ class SpellDPSCalculator:
 
         return damage * damage_multiplier
 
-    def _calculate_cast_speed(self, base_cast_time: float, increased_cast_speed: float) -> float:
+    def _calculate_cast_speed(self, base_cast_time: float, increased_cast_speed: float,
+                              is_channelled: bool = False, repeats: float = 1) -> float:
         """Calculate casts per second from base cast time and modifiers.
 
         Applies increased cast speed modifiers to reduce the actual cast time,
@@ -451,7 +458,10 @@ class SpellDPSCalculator:
         """
         cast_speed_multiplier = 1.0 + (increased_cast_speed / 100.0)
         actual_cast_time = base_cast_time / cast_speed_multiplier
-        return min(1.0 / actual_cast_time, SERVER_TICK_RATE)  # PoB caps Speed at the server tick rate
+        speed = 1.0 / actual_cast_time
+        if is_channelled:
+            return speed  # CalcOffence.lua:3016: Channel skills are not tick-capped
+        return min(speed, SERVER_TICK_RATE * max(1, repeats or 1))  # cap = tick rate * Repeats
 
     def get_spell_by_name(self, spell_name: str) -> Optional[SpellStats]:
         """Retrieve spell statistics from the spell database.

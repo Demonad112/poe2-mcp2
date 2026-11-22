@@ -258,6 +258,7 @@ def resolve_spell_from_v2(spell_name: str, gem_level: int = 20) -> Optional[Dict
         "base_crit_chance": base_crit_chance,
         "base_cast_time": base_cast_time,
         "damage_types": damage_types,
+        "is_channelled": "Channel" in (record.get("skillTypes") or []),
         "_v2_meta": {
             "skill_id": skill_id,
             "statset_label": chosen_statset.get("label"),

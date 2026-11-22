@@ -1,0 +1,94 @@
+{
+ "dps_inputs": {
+  "e_res": {
+   "Armour": 8063,
+   "ChaosResist": 0,
+   "ColdResist": 50,
+   "ElementalResist": 0,
+   "FireResist": 50,
+   "LightningResist": 50
+  },
+  "extra": {
+   "DpsMultiplier": 1
+  },
+  "skill_pen": {
+   "ChaosPenetration": 0,
+   "ColdPenetration": 0,
+   "ColdPenetrationMinimum": 0,
+   "ElementalPenetration": 0,
+   "ElementalPenetrationMinimum": 0,
+   "FirePenetration": 0,
+   "FirePenetrationMinimum": 0,
+   "LightningPenetration": 0,
+   "LightningPenetrationMinimum": 0
+  },
+  "t_inc": {
+   "ChaosDamageTaken": 0,
+   "ColdDamageTaken": 0,
+   "DamageTaken": 0,
+   "ElementalDamageTaken": 0,
+   "FireDamageTaken": 0,
+   "LightningDamageTaken": 0,
+   "PhysicalDamageTaken": 0
+  },
+  "t_more": {
+   "ChaosDamageTaken": 1,
+   "ColdDamageTaken": 1,
+   "DamageTaken": 1,
+   "ElementalDamageTaken": 1,
+   "FireDamageTaken": 1,
+   "LightningDamageTaken": 1,
+   "PhysicalDamageTaken": 1
+  }
+ },
+ "pob_commit": "601768b",
+ "raw_resmax": {
+  "ChaosResistMax": 75,
+  "ColdResistMax": 75,
+  "ElementalResistMax": 0,
+  "FireResistMax": 75,
+  "LightningResistMax": 75
+ },
+ "stats": {
+  "Armour": 0,
+  "ChaosEnemyPen": 0,
+  "ChaosMaximumHitTaken": 1187,
+  "ChaosResist": 0,
+  "ChaosResistOverCap": 0,
+  "ChaosResistTotal": 0,
+  "ChaosStoredCombinedAvg": 0,
+  "ColdEnemyPen": 3,
+  "ColdMaximumHitTaken": 791,
+  "ColdResist": -50,
+  "ColdResistOverCap": 0,
+  "ColdResistTotal": -50,
+  "ColdStoredCombinedAvg": 0,
+  "CombinedDPS": 128.43684,
+  "CritChance": 4,
+  "CritMultiplier": 2.25,
+  "EnergyShield": 0,
+  "Evasion": 7,
+  "FireEnemyPen": 3,
+  "FireMaximumHitTaken": 791,
+  "FireResist": -50,
+  "FireResistOverCap": 0,
+  "FireResistTotal": -50,
+  "FireStoredCombinedAvg": 0,
+  "HitChance": 80,
+  "Life": 1187,
+  "LightningEnemyPen": 3,
+  "LightningMaximumHitTaken": 791,
+  "LightningResist": -50,
+  "LightningResistOverCap": 0,
+  "LightningResistTotal": -50,
+  "LightningStoredCombinedAvg": 189,
+  "MainHand.PhysicalStoredCritAvg": 100.125,
+  "MainHand.PhysicalStoredHitAvg": 44.5,
+  "PhysicalEnemyPen": 0,
+  "PhysicalMaximumHitTaken": 1187,
+  "PhysicalStoredCombinedAvg": 46.725,
+  "PreEffectiveCritChance": 5,
+  "Speed": 1.512,
+  "TotalDPS": 128.43684
+ }
+}

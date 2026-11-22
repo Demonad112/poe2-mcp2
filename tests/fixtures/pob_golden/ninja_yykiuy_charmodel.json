@@ -1,4 +1,46 @@
 {
+ "dps_inputs": {
+  "e_res": {
+   "Armour": 8063,
+   "ChaosResist": 0,
+   "ColdResist": 40,
+   "ElementalResist": 0,
+   "FireResist": 50,
+   "LightningResist": 50
+  },
+  "extra": {
+   "DpsMultiplier": 1
+  },
+  "skill_pen": {
+   "ChaosPenetration": 0,
+   "ColdPenetration": 0,
+   "ColdPenetrationMinimum": 0,
+   "ElementalPenetration": 25,
+   "ElementalPenetrationMinimum": 0,
+   "FirePenetration": 0,
+   "FirePenetrationMinimum": 0,
+   "LightningPenetration": 0,
+   "LightningPenetrationMinimum": 0
+  },
+  "t_inc": {
+   "ChaosDamageTaken": 0,
+   "ColdDamageTaken": 0,
+   "DamageTaken": 0,
+   "ElementalDamageTaken": 0,
+   "FireDamageTaken": 0,
+   "LightningDamageTaken": 0,
+   "PhysicalDamageTaken": 0
+  },
+  "t_more": {
+   "ChaosDamageTaken": 1,
+   "ColdDamageTaken": 1,
+   "DamageTaken": 1,
+   "ElementalDamageTaken": 1,
+   "FireDamageTaken": 1,
+   "LightningDamageTaken": 1,
+   "PhysicalDamageTaken": 1
+  }
+ },
  "pob_commit": "601768b",
  "raw_resmax": {
   "ChaosResistMax": 75,
@@ -40,9 +82,12 @@
   "LightningResistOverCap": 0,
   "LightningResistTotal": 74,
   "LightningStoredCombinedAvg": 101420.15472,
+  "MainHand.PhysicalStoredCritAvg": 25348.4,
+  "MainHand.PhysicalStoredHitAvg": 5761,
   "PhysicalEnemyPen": 0,
   "PhysicalMaximumHitTaken": 4399,
   "PhysicalStoredCombinedAvg": 18406.62544,
+  "PreEffectiveCritChance": 64.56,
   "Speed": 1.5912,
   "TotalDPS": 251182.44009137
  }
