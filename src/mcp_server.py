@@ -1243,7 +1243,11 @@ class PoE2BuildOptimizerMCP:
                                     "chance (0-100, default 100), increased_magnitude, "
                                     "more_multipliers (list), increased_duration, "
                                     "stack_limit (poison; default 1), enemy_moving (bleed), "
-                                    "aggravated (bleed)}], "
+                                    "aggravated (bleed), chance_on_crit (0-100; ailment "
+                                    "chance on crits, default = chance)}], "
+                                    "use_hit_range (default true: PoB strongest-instance "
+                                    "roll/crit weighting from the spell's min/max; ignored "
+                                    "when hit_damage_by_type is given), "
                                     "skill_dot: {base_dps (REQUIRED — e.g. Essence Drain's "
                                     "base chaos DPS at gem level; the 0.5 extraction lacks "
                                     "absolute DoT base values so the caller supplies it), "
@@ -4770,6 +4774,7 @@ Consider:
                         AilmentInput,
                         DoTCalculator,
                         SkillDoTInput,
+                        build_ailment_hit_range,
                         split_expected_hit_by_type,
                     )
                 except ImportError:
@@ -4777,6 +4782,7 @@ Consider:
                         AilmentInput,
                         DoTCalculator,
                         SkillDoTInput,
+                        build_ailment_hit_range,
                         split_expected_hit_by_type,
                     )
 
@@ -4790,18 +4796,22 @@ Consider:
                     k.lower(): float(v_)
                     for k, v_ in (dot_in.get("hit_damage_by_type") or {}).items()
                 }
+                added_by_type = {
+                    "fire": char_mods.added_fire,
+                    "cold": char_mods.added_cold,
+                    "lightning": char_mods.added_lightning,
+                    "chaos": char_mods.added_chaos,
+                    "physical": char_mods.added_physical,
+                }
+                # PoB strongest-instance model needs the hit's min/max; only
+                # derivable from the spell pipeline (not from an override).
+                use_hit_range = not hit_by_type and bool(dot_in.get("use_hit_range", True))
                 if not hit_by_type:
                     hit_by_type = split_expected_hit_by_type(
                         expected_hit=float(breakdown.get("expected_hit", 0.0)),
                         base_damage=float(breakdown.get("base_damage", 0.0)),
                         primary_type=(spell.damage_types[0] if spell.damage_types else None),
-                        added_by_type={
-                            "fire": char_mods.added_fire,
-                            "cold": char_mods.added_cold,
-                            "lightning": char_mods.added_lightning,
-                            "chaos": char_mods.added_chaos,
-                            "physical": char_mods.added_physical,
-                        },
+                        added_by_type=added_by_type,
                         damage_effectiveness=spell.damage_effectiveness,
                     )
 
@@ -4809,6 +4819,23 @@ Consider:
 
                 ailment_results = []
                 for a in dot_in.get("ailments") or []:
+                    hit_range = None
+                    if use_hit_range:
+                        coc = a.get("chance_on_crit")
+                        hit_range = build_ailment_hit_range(
+                            ailment=str(a.get("type", "")),
+                            base_damage_min=spell.base_damage_min,
+                            base_damage_max=spell.base_damage_max,
+                            primary_type=(spell.damage_types[0] if spell.damage_types else None),
+                            added_by_type=added_by_type,
+                            damage_effectiveness=spell.damage_effectiveness,
+                            after_more=float(breakdown.get("after_more", 0.0)),
+                            crit_multiplier=float(
+                                (breakdown.get("multipliers") or {}).get("crit", 1.0)
+                            ),
+                            crit_chance_pct=float(result.get("crit_chance", 0.0)),
+                            chance_on_crit_pct=(float(coc) if coc is not None else None),
+                        )
                     ailment_results.append(
                         dot_calc.calculate_ailment_dot(
                             AilmentInput(
@@ -4826,6 +4853,7 @@ Consider:
                             hit_damage_by_type=hit_by_type,
                             hits_per_second=hits_per_second,
                             enemy=enemy,
+                            hit_range=hit_range,
                         )
                     )
 
@@ -4862,6 +4890,12 @@ Consider:
                         f"avg stacks, {r['duration_seconds']}s duration, "
                         f"{r['applications_per_second']} applications/s)"
                     )
+                    if r.get("roll_average_pct") is not None:
+                        dot_section.append(
+                            f"  - PoB strongest-instance: roll {r['roll_average_pct']}% of "
+                            f"hit range, effective crit {r['effective_crit_chance_pct']}%, "
+                            f"stack potential {r['stack_potential']}"
+                        )
                 if skill_dot_result:
                     dot_section.append(
                         f"- **Skill DoT** ({skill_dot_result['damage_type']}): "
