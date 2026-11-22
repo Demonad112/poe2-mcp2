@@ -37,6 +37,60 @@ jobs:
           or knowledge or formula or mechanic or synergy or validation_tools or scor or
           archetype or optimizer or readiness or comparator or schema"
 
+  # ---- Blocking: marker-based offline suite vs. known-failure baseline ----
+  # Runs everything that needs no network / live PoB / extracted game data and fails on any
+  # FAILED/ERROR beyond tests/baseline_failures.txt (pre-existing data-dependent failures).
+  offline-suite:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio
+      - name: Run offline suite
+        run: |
+          set +e
+          python -m pytest -m "not (network or pob_required or requires_game_data)" -q -p no:cacheprovider -rfE | tee pytest-offline.txt
+          set -e
+          python scripts/baseline_gate.py pytest-offline.txt
+
+  # ---- Golden/engine: runs the PoB-exact tests when LuaJIT + the pinned PoB2 can be built -------
+  # scripts/setup_headless_pob.sh builds the pinned LuaJIT and fetches the pinned PoB2 commit. If the
+  # setup cannot complete (network/toolchain), the job skips the engine tests instead of failing.
+  golden-engine:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/poe2-mcp
+          key: poe2-headless-${{ hashFiles('src/pob/headless.py', 'scripts/setup_headless_pob.sh') }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio
+      - name: Build headless PoB engine
+        id: engine
+        continue-on-error: true
+        run: bash scripts/setup_headless_pob.sh
+      - name: Golden + headless tests (engine ready)
+        if: steps.engine.outcome == 'success'
+        run: python -m pytest tests/test_pob_golden_python_vs_engine.py tests/test_headless_pob.py tests/test_headless_skill_table.py tests/test_headless_whatifs.py -q -p no:cacheprovider
+      - name: Golden tests only (engine unavailable)
+        if: steps.engine.outcome != 'success'
+        run: python -m pytest tests/test_pob_golden_python_vs_engine.py -q -p no:cacheprovider
+
   # ---- Blocking: addon Lua syntax ----------------------------------------
   # The MCP bridge is Lua; a syntax error breaks the addon *silently* (it just
   # fails to load in PoB). luac -p is syntax-only, so PoB-provided globals don't
