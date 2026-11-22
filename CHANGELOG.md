@@ -7,6 +7,26 @@ Format based on Path of Building changelog style, adapted for MCP tooling.
 
 ---
 
+## Unreleased - PoB parity follow-ups (review of #16-#18)
+
+--- MCP Tools ---
+* `calculate_character_dps` schema now advertises `pob_file_path`, `character_data`, `char_model`, `config`, `fields`, `level`: PoB-exact via the headless engine when a build is supplied, labelled Python approximation otherwise
+* Add `calculate_ehp` tool with the same headless-first routing; the comprehensive optimizer renders headless EHP JSON as markdown
+* **Breaking (since #16):** `increased_crit_chance` is multiplicative (PoB semantics): crit = (base + `added_crit_chance`) x (1 + inc) x (1 + more), not a flat addition
+
+--- Calculators ---
+* Server-tick speed cap now skips Channel skills and scales with `Repeats` (`SpellStats.is_channelled` / `repeats`)
+* Shock is part of one DamageTaken INC pool: `EnemyStats.increased_damage_taken` is additive with shock magnitude (`EnemyStats.shock_multiplier` now a real method)
+* Evade / hit chance rounded to integers like PoB
+
+--- Infrastructure ---
+* bridge `sum_mod`: `db:"skill"` (main skill's skillModList), `cfg:"skill"`, `MORE` kind; `get_stats` accepts `MainHand.<Stat>` fields
+* Audit conversion-chain DPS row fixed (within 0.1% of PoB on all fixtures); `--write-goldens`
+* Synthetic fixtures in `tests/fixtures/builds/` (`scripts/make_synthetic_fixtures.py`); PoB2 pinned to a full sha, `setup_headless_pob.sh` fetches exactly the pin; golden test fails if checkout/goldens != pin
+* Engine cache key includes `bridge.lua` hash and level; atomic writes; `cloud_setup.sh` installs pytest + pytest-asyncio
+
+---
+
 ## Version 1.0.4 (2026-06-16) - permissioned self-update
 
 Closes the "no data release published" gap and adds a consent-based self-update path so the server updates its game data and code only with the user's permission.
