@@ -75,6 +75,7 @@
   "FireResistTotal": -10,
   "FireStoredCombinedAvg": 0,
   "HitChance": 100,
+  "IgniteChanceOnHit": 0,
   "Life": 1,
   "LightningEnemyPen": 3,
   "LightningMaximumHitTaken": 438,

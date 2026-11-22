@@ -35,6 +35,18 @@ FIXTURES = {
         "items": [("Weapon 1", "Rarity: Rare\nTest Wand\nWithered Wand\n70% increased Chaos Damage\n"
                                "40% increased Skill Effect Duration")],
     },
+    "synthetic_minion_zombie": {
+        "level": 90,
+        "gems": [("RaiseZombiePlayer", 20)],
+        "items": [("Weapon 1", "Rarity: Rare\nTest Sceptre\nOrnate Sceptre\n+1 to Level of all Minion Skills\n"
+                               "40% increased Minion Damage")],
+    },
+    "synthetic_hit_dot_ignite_fireball": {
+        "level": 90,
+        "gems": [("FireballPlayer", 20)],
+        "items": [("Weapon 1", "Rarity: Rare\nTest Staff\nAshen Staff\n100% chance to Ignite\n"
+                               "80% increased Fire Damage\n+30% to Critical Damage Bonus")],
+    },
     "synthetic_es_ci": {
         "level": 90,
         "gems": [("SparkPlayer", 20)],
@@ -75,7 +87,7 @@ def main():
         xml = build_xml(skeleton, spec)
         with headless.HeadlessPoB() as pob:
             pob.load_build(xml)
-            st = pob.call("get_stats", fields=["TotalDPS", "CombinedDPS", "Life", "EnergyShield", "Speed"])["stats"]
+            st = pob.call("get_stats", fields=["TotalDPS", "CombinedDPS", "TotalDotDPS", "IgniteDPS", "Minion.TotalDPS", "Life", "EnergyShield", "Speed"])["stats"]
         print(name, {k: round(v, 1) if isinstance(v, (int, float)) else v for k, v in st.items()})
         (OUT / f"{name}.json").write_text(json.dumps({"name": name, "synthetic": True, "pob_xml": xml}, indent=1) + "\n")
 

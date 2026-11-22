@@ -12,6 +12,7 @@ Env: POE2_POB_HOME (cache dir), POE2_POB_SRC (PoB2 ``src`` dir), POE2_LUAJIT (bi
 import base64
 import json
 import os
+import re
 import shutil
 import subprocess
 import threading
@@ -78,6 +79,60 @@ POB_COMMIT_PIN_FULL = "601768bd105869618c3d6581b883e5d7aeec91b2"
 POB_COMMIT_PIN = POB_COMMIT_PIN_FULL[:7]
 
 
+def bridge_version() -> str:
+    """Bridge protocol version, read from the ``-- bridge-version: N`` header of pob_headless/bridge.lua.
+    Bump it in bridge.lua when handler semantics change; it is reported by headless_pob_status and is
+    part of every cached result's key (src/pob/cache.py)."""
+    try:
+        with open(BRIDGE, encoding="utf-8") as f:
+            for _ in range(10):
+                m = re.match(r"--\s*bridge-version:\s*(\S+)", f.readline())
+                if m:
+                    return m.group(1)
+    except OSError:
+        pass
+    return "unknown"
+
+
+# First-class what-if args -> PoB Configuration-tab inputs. kind: int | bool | charges.
+WHATIF_ARGS: Dict[str, str] = {
+    "enemy_level": "enemyLevel (int; PoB caps normal enemies/bosses at 85)",
+    "enemy_shocked": "conditionEnemyShocked (bool)",
+    "shock_effect": "conditionShockEffect (int %; implies enemy_shocked)",
+    "fire_exposure": "conditionEnemyFireExposure (bool; -20% fire res)",
+    "cold_exposure": "conditionEnemyColdExposure (bool; -20% cold res)",
+    "lightning_exposure": "conditionEnemyLightningExposure (bool; -20% lightning res)",
+    "power_charges": "usePowerCharges + overridePowerCharges (int; 0 turns them off)",
+    "frenzy_charges": "useFrenzyCharges + overrideFrenzyCharges (int; 0 turns them off)",
+    "endurance_charges": "useEnduranceCharges + overrideEnduranceCharges (int; 0 turns them off)",
+}
+
+
+def build_config(args: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Merge the documented what-if args into the raw ``config`` dict (explicit raw keys win).
+    Returns None when nothing is set."""
+    cfg: Dict[str, Any] = {}
+    if args.get("enemy_level") is not None:
+        cfg["enemyLevel"] = int(args["enemy_level"])
+    if args.get("enemy_shocked") is not None:
+        cfg["conditionEnemyShocked"] = bool(args["enemy_shocked"])
+    if args.get("shock_effect") is not None:
+        cfg["conditionEnemyShocked"] = True
+        cfg["conditionShockEffect"] = int(args["shock_effect"])
+    for arg, key in (("fire_exposure", "conditionEnemyFireExposure"), ("cold_exposure", "conditionEnemyColdExposure"),
+                     ("lightning_exposure", "conditionEnemyLightningExposure")):
+        if args.get(arg) is not None:
+            cfg[key] = bool(args[arg])
+    for arg, name in (("power_charges", "Power"), ("frenzy_charges", "Frenzy"), ("endurance_charges", "Endurance")):
+        n = args.get(arg)
+        if n is not None:
+            cfg[f"use{name}Charges"] = int(n) > 0
+            if int(n) > 0:
+                cfg[f"override{name}Charges"] = int(n)
+    cfg.update(args.get("config") or {})
+    return cfg or None
+
+
 def pob_commit() -> str:
     """Short git hash of the PathOfBuilding-PoE2 checkout in use (falls back to the pin)."""
     src = pob_src_dir()
@@ -127,6 +182,8 @@ def find_environment() -> Dict[str, Any]:
         "pob_src_present": (src / "HeadlessWrapper.lua").is_file(),
         "lua_utf8": str(utf8) if utf8.is_file() else None,
         "bridge": str(BRIDGE),
+        "bridge_version": bridge_version(),
+        "pob_commit": pob_commit(),
         "luajit_compound_assign": luajit_supports_compound_assign(luajit),
         "ready": bool(
             luajit

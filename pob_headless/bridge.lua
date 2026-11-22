@@ -1,4 +1,5 @@
 -- pob_headless/bridge.lua
+-- bridge-version: 2
 --
 -- Headless Path of Building 2 bridge for poe2-mcp (MIT, original work).
 -- Runs under LuaJIT with cwd = <PathOfBuilding-PoE2>/src and speaks
@@ -117,10 +118,12 @@ handlers.get_stats = function(p)
     main.skill = sk.activeEffect.grantedEffect.name
   end
   local stats = scalars(out, p.fields)
-  -- Per-hand pass outputs (weapon attacks): "MainHand.<Stat>" / "OffHand.<Stat>" read out.MainHand / out.OffHand.
+  -- Per-hand pass outputs (weapon attacks): "MainHand.<Stat>" / "OffHand.<Stat>" read out.MainHand / out.OffHand;
+  -- "Minion.<Stat>" reads the summoned minion's own output table (out.Minion).
   for _, f in ipairs(type(p.fields) == 'table' and p.fields or {}) do
-    local hand, sub = tostring(f):match('^(%a+Hand)%.(.+)$')
-    if hand and type(out[hand]) == 'table' and type(out[hand][sub]) == 'number' then stats[f] = out[hand][sub] end
+    local hand, sub = tostring(f):match('^(%a+)%.(.+)$')
+    if hand and (hand == 'MainHand' or hand == 'OffHand' or hand == 'Minion')
+        and type(out[hand]) == 'table' and type(out[hand][sub]) == 'number' then stats[f] = out[hand][sub] end
   end
   return {
     ok = true,

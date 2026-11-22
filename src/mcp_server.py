@@ -812,7 +812,8 @@ class PoE2BuildOptimizerMCP:
                         "type": "object",
                         "properties": {
                             "pob_file_path": {"type": "string", "description": "File with PoB code or XML"},
-                            "config": {"type": "object", "description": "PoB config input overrides"},
+                            "config": {"type": "object", "description": "Raw PoB config input overrides (win over the what-if args below)"},
+                            **PoE2BuildOptimizerMCP._whatif_schema_props(),
                             "level": {"type": "integer", "description": "Character level override"},
                             "fields": {"type": "array", "items": {"type": "string"}, "description": "Only return these stat keys (e.g. TotalDPS, CombinedDPS, Life, EnergyShield, Spirit)"},
                         },
@@ -1108,6 +1109,7 @@ class PoE2BuildOptimizerMCP:
                                 "type": "object",
                                 "description": "Headless config what-ifs (enemy level, shock, exposure, charges...) applied before calculating. Ignored on the Python fallback.",
                             },
+                            **PoE2BuildOptimizerMCP._whatif_schema_props(),
                             "fields": {
                                 "type": "array",
                                 "items": {"type": "string"},
@@ -1269,6 +1271,7 @@ class PoE2BuildOptimizerMCP:
                                 "type": "object",
                                 "description": "Headless config what-ifs (enemy level, shock, exposure, charges...) applied before calculating. Ignored on the Python fallback.",
                             },
+                            **PoE2BuildOptimizerMCP._whatif_schema_props(),
                             "fields": {
                                 "type": "array",
                                 "items": {"type": "string"},
@@ -1353,9 +1356,16 @@ class PoE2BuildOptimizerMCP:
                                     "spirit_reserved, level}. All numeric; null = "
                                     "not provided."
                                 ),
-                            }
+                            },
+                            "pob_file_path": {
+                                "type": "string",
+                                "description": "File holding a PoB2 export code/XML. With the headless engine ready, resists/life/ES/spirit/level come from PoB (response is labelled PoB-exact); otherwise the supplied character_data is validated and labelled [approximate].",
+                            },
+                            "config": {"type": "object", "description": "Raw PoB config overrides for the headless run."},
+                            "level": {"type": "integer", "description": "Character level override for the headless run."},
+                            **PoE2BuildOptimizerMCP._whatif_schema_props(),
                         },
-                        "required": ["character_data"],
+                        "required": [],
                     },
                 ),
                 types.Tool(
@@ -2337,6 +2347,21 @@ Tracked at https://github.com/HivemindOverlord/poe2-mcp/issues/61.
         self.pob_client = PoBClient.find_bridge() or PoBClient(port=port)
         return self.pob_client
 
+    @staticmethod
+    def _whatif_schema_props() -> dict:
+        """Documented first-class headless what-if args (see src/pob/headless.py::build_config)."""
+        return {
+            "enemy_level": {"type": "integer", "description": "What-if: enemy level (PoB config enemyLevel; max 85 for normal enemies/bosses)."},
+            "enemy_shocked": {"type": "boolean", "description": "What-if: enemy is Shocked (conditionEnemyShocked)."},
+            "shock_effect": {"type": "integer", "description": "What-if: Shock effect % on the enemy (conditionShockEffect); implies enemy_shocked."},
+            "fire_exposure": {"type": "boolean", "description": "What-if: enemy has Fire Exposure (-20% fire res)."},
+            "cold_exposure": {"type": "boolean", "description": "What-if: enemy has Cold Exposure (-20% cold res)."},
+            "lightning_exposure": {"type": "boolean", "description": "What-if: enemy has Lightning Exposure (-20% lightning res)."},
+            "power_charges": {"type": "integer", "description": "What-if: Power Charges held (0 = none)."},
+            "frenzy_charges": {"type": "integer", "description": "What-if: Frenzy Charges held (0 = none)."},
+            "endurance_charges": {"type": "integer", "description": "What-if: Endurance Charges held (0 = none)."},
+        }
+
     async def _handle_headless_pob_status(self, args: dict) -> List[types.TextContent]:
         try:
             from .pob import headless
@@ -2352,7 +2377,7 @@ Tracked at https://github.com/HivemindOverlord/poe2-mcp/issues/61.
         try:
             raw = Path(args["pob_file_path"]).read_text(encoding="utf-8")
             res = await asyncio.to_thread(
-                headless.calc, raw, args.get("config"), args.get("fields"), args.get("level")
+                headless.calc, raw, headless.build_config(args), args.get("fields"), args.get("level")
             )
             return [types.TextContent(type="text", text=json.dumps(res, indent=2, default=str))]
         except Exception as e:
@@ -4376,6 +4401,9 @@ Consider:
                         return code.strip()
         return None
 
+    _APPROX_LABEL = "[approximate: Python fallback, not PoB-exact; pass pob_file_path with the headless engine ready for exact numbers]\n"
+    _HEADLESS_VALIDATE_FIELDS = ["FireResist", "ColdResist", "LightningResist", "ChaosResist", "Life", "EnergyShield", "Spirit", "SpiritReserved"]
+
     async def _route_headless_first(self, args: dict, fields: list, python_fn):
         """Use the PoB-exact headless engine when it is ready and a build file is supplied;
         otherwise fall back to the Python calculator, labelled approximate."""
@@ -4393,15 +4421,14 @@ Consider:
                 if ready:
                     raw = Path(path).read_text(encoding="utf-8") if path else inline_code
                     res = await asyncio.to_thread(
-                        headless.calc, raw, args.get("config"), args.get("fields") or fields, args.get("level")
+                        headless.calc, raw, headless.build_config(args), args.get("fields") or fields, args.get("level")
                     )
                     res = {"source": "headless_pob", "exact": True, **res}
                     return [types.TextContent(type="text", text=json.dumps(res, indent=2, default=str))]
             except Exception as e:  # fall through to the Python path
                 logger.warning("headless route failed, using Python fallback: %s", e)
         out = await python_fn(args)
-        label = "[approximate: Python fallback, not PoB-exact; pass pob_file_path with the headless engine ready for exact numbers]\n"
-        return [types.TextContent(type="text", text=label + "\n".join(getattr(t, "text", "") for t in out))]
+        return [types.TextContent(type="text", text=self._APPROX_LABEL + "\n".join(getattr(t, "text", "") for t in out))]
 
     @staticmethod
     def _ehp_text_for_report(text: str) -> str:
@@ -6528,6 +6555,40 @@ Consider:
         return None
 
     async def _handle_validate_build_constraints(self, args: dict) -> List[types.TextContent]:
+        """Headless-first: derive the stats from the PoB engine when a build is supplied and the engine is
+        ready; otherwise validate the supplied character_data and label it approximate."""
+        try:
+            from .pob import headless
+        except ImportError:
+            from src.pob import headless
+        data = dict(args.get("character_data") or {})
+        path = args.get("pob_file_path")
+        inline = None if path else self._extract_pob_export(args)
+        if path or inline:
+            try:
+                if headless.find_environment().get("ready"):
+                    raw = Path(path).read_text(encoding="utf-8") if path else inline
+                    res = await asyncio.to_thread(
+                        headless.calc, raw, headless.build_config(args), self._HEADLESS_VALIDATE_FIELDS, args.get("level")
+                    )
+                    st = res.get("stats") or {}
+                    exact = {
+                        "fire_resistance": st.get("FireResist"), "cold_resistance": st.get("ColdResist"),
+                        "lightning_resistance": st.get("LightningResist"), "chaos_resistance": st.get("ChaosResist"),
+                        "life": st.get("Life"), "energy_shield": st.get("EnergyShield"),
+                        "spirit": st.get("Spirit"), "spirit_reserved": st.get("SpiritReserved"),
+                        "level": res.get("level"),
+                    }
+                    data = {**data, **{k: v for k, v in exact.items() if v is not None}}
+                    out = await self._validate_build_constraints_python({**args, "character_data": data})
+                    text = "\n".join(getattr(t, "text", "") for t in out)
+                    return [types.TextContent(type="text", text="[PoB-exact: stats from headless engine]\n" + text)]
+            except Exception as e:  # fall through to the supplied-data path
+                logger.warning("headless validate route failed, using Python fallback: %s", e)
+        out = await self._validate_build_constraints_python({**args, "character_data": data})
+        return [types.TextContent(type="text", text=self._APPROX_LABEL + "\n".join(getattr(t, "text", "") for t in out))]
+
+    async def _validate_build_constraints_python(self, args: dict) -> List[types.TextContent]:
         """Comprehensive build validation.
 
         #152: resistances accepted under flat/legacy/nested key shapes;
@@ -6763,7 +6824,7 @@ Consider:
             tolerance_pct = args.get("tolerance_pct") or None
             report = reconcile_defensive_stats(char_model, tolerance_pct=tolerance_pct)
 
-            lines = ["# Defensive Stats Reconciliation", ""]
+            lines = [self._APPROX_LABEL.strip(), "", "# Defensive Stats Reconciliation", ""]
             lines.append("```")
             lines.append(format_report(report))
             lines.append("```")

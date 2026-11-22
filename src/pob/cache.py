@@ -33,7 +33,7 @@ def cache_key(xml: str, action: str = "get_stats", config: Optional[dict] = None
     meta = {"commit": commit or headless.pob_commit(), "action": action,
             "config": sorted((config or {}).items()), "fields": sorted(fields or []),
             "params": sorted((params or {}).items(), key=lambda kv: kv[0]),
-            "bridge": bridge_hash(), "level": level}
+            "bridge": bridge_hash(), "bridge_version": headless.bridge_version(), "level": level}
     h.update(json.dumps(meta, sort_keys=True, default=str).encode())
     return h.hexdigest()
 

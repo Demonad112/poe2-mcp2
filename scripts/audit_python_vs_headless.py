@@ -18,6 +18,7 @@ from src.pob.cache import CachedEngine  # noqa: E402
 from src.pob import headless  # noqa: E402
 from src.calculator.defense_calculator import DefenseCalculator, DefenseConstants  # noqa: E402
 from src.calculator.ehp_calculator import EHPCalculator, DefensiveStats, ThreatProfile, DamageType  # noqa: E402
+from src.calculator.dot_calculator import DoTCalculator, AilmentInput  # noqa: E402
 from src.calculator.spell_dps_calculator import SpellDPSCalculator, SpellStats, CharacterModifiers, EnemyStats  # noqa: E402
 
 ENEMY_PHYS_DR_CAP = 75.0  # Data/Misc.lua monsterConstants["maximum_physical_damage_reduction_%"]
@@ -31,7 +32,9 @@ FIELDS = ["FireResistTotal", "ColdResistTotal", "LightningResistTotal", "ChaosRe
           "PhysicalStoredCombinedAvg", "MainHand.PhysicalStoredCritAvg", "MainHand.PhysicalStoredHitAvg", "PreEffectiveCritChance", "FireStoredCombinedAvg", "ColdStoredCombinedAvg",
           "LightningStoredCombinedAvg", "ChaosStoredCombinedAvg",
           "WardOnAllArmourItems", "PhysicalMaximumHitTaken", "FireMaximumHitTaken", "ColdMaximumHitTaken",
-          "LightningMaximumHitTaken", "ChaosMaximumHitTaken"]
+          "LightningMaximumHitTaken", "ChaosMaximumHitTaken",
+          "IgniteDPS", "IgniteChanceOnHit", "Minion.TotalDPS", "Minion.AverageDamage", "Minion.Speed",
+          "Minion.HitChance", "Minion.DpsMultiplier"]
 
 
 def _prod(it):
@@ -155,6 +158,20 @@ def audit_build(name, xml, eng, base):
     dps_inputs = {"skill_pen": skill_pen, "e_res": e_res, "t_inc": t_inc, "t_more": t_more, "extra": extra}
     rows.append(("Conversion-chain TotalDPS (python mitigation of pools)", s["TotalDPS"],
                  python_conversion_dps(s, dps_inputs)))
+    # hit-DoT: Ignite DPS. Python ailment math on the engine-read crit-weighted fire hit pool, enemy fire res
+    # read from the enemy modDB (skill cfg) and the engine's own hit rate; PoB = IgniteDPS.
+    if s.get("IgniteDPS") and s.get("IgniteChanceOnHit"):
+        res = e_res["FireResist"] + e_res["ElementalResist"]
+        ig = DoTCalculator().calculate_ailment_dot(
+            AilmentInput(ailment="ignite", chance_pct=s.get("IgniteChanceOnHit") or 0),
+            {"fire": s["FireStoredCombinedAvg"]}, s["Speed"], EnemyStats(fire_resistance=res))
+        rows.append(("Ignite DPS (python ailment math x chance, engine fire pool)", s["IgniteDPS"],
+                     ig["dps_per_stack"] * min(s["IgniteChanceOnHit"], 100) / 100))
+    # minion DPS: engine-read per-hit minion damage x its attack/cast rate x hit chance x DPS multiplier.
+    if s.get("Minion.TotalDPS"):
+        rows.append(("Minion TotalDPS (AverageDamage x Speed x HitChance x DpsMult)", s["Minion.TotalDPS"],
+                     s["Minion.AverageDamage"] * s["Minion.Speed"] * s["Minion.HitChance"] / 100
+                     * (s.get("Minion.DpsMultiplier") or 1)))
     # damage-type split sanity vs skill table (main = highest TotalDPS)
     main = max(table, key=lambda x: x["TotalDPS"]) if table else None
     cats = []
