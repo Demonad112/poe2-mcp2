@@ -464,7 +464,7 @@ class Datc64Parser:
         repaired = self._repair_string_corruption(rows, columns)
         if repaired > 0:
             logger.warning(
-                f"Detected and repaired {repaired} corrupted string pointers in {file_path.name}. "
+                f"Detected and repaired {repaired} corrupted string pointers in {Path(file_path).name}. "
                 f"This indicates a bug in the game's data export or extraction process."
             )
 

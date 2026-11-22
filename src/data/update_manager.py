@@ -116,7 +116,10 @@ def _packaged_code_version() -> Optional[str]:
     """Best-effort current code version for a packaged install (manifest)."""
     if _MANIFEST_FILE.exists():
         try:
-            return json.loads(_MANIFEST_FILE.read_text(encoding="utf-8")).get("version")
+            version: Optional[str] = json.loads(_MANIFEST_FILE.read_text(encoding="utf-8")).get(
+                "version"
+            )
+            return version
         except (OSError, json.JSONDecodeError):
             return None
     return None
@@ -138,7 +141,7 @@ def _latest_code_release() -> Optional[Dict[str, Any]]:
             },
         )
         with urllib.request.urlopen(req, timeout=10) as r:
-            releases = json.loads(r.read())
+            releases: List[Dict[str, Any]] = json.loads(r.read())
     except Exception as e:  # network failure is non-fatal
         logger.warning("Failed to query GitHub Releases for code version: %s", e)
         return None

@@ -66,7 +66,7 @@ class GearOptimizer:
         """
         logger.info(f"Optimizing gear with goal={goal}, budget={budget}")
 
-        recommendations = {
+        recommendations: Dict[str, Any] = {
             "priority_upgrades": [],
             "budget_tier": budget,
             "optimization_goal": goal,
@@ -109,7 +109,7 @@ class GearOptimizer:
 
     def _extract_current_items(self, character_data: Dict[str, Any]) -> Dict[str, Any]:
         """Extract current equipped items by slot"""
-        current_items = {}
+        current_items: Dict[str, Any] = {}
 
         items = character_data.get("items", [])
         if not items:
@@ -310,7 +310,7 @@ class GearOptimizer:
         # Base score on item level
         score += item.level_requirement * 0.1
 
-        return score
+        return float(score)
 
     def _estimate_improvement(
         self, current_item: Optional[Dict[str, Any]], suggested_item: Dict[str, Any], goal: str

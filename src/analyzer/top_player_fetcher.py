@@ -47,7 +47,7 @@ class TopPlayerFetcher:
         self,
         user_character: Dict[str, Any],
         league: str = "Standard",
-        min_level: int = None,
+        min_level: Optional[int] = None,
         limit: int = 10,
     ) -> List[Dict[str, Any]]:
         """
@@ -141,7 +141,7 @@ class TopPlayerFetcher:
         self,
         user_character: Dict[str, Any],
         league: str = "Standard",
-        min_level: int = None,
+        min_level: Optional[int] = None,
         comparison_focus: str = "dps",
         top_player_limit: int = 10,
     ) -> Dict[str, Any]:

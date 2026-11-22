@@ -10,10 +10,10 @@ Sources: poe2wiki.net, poewiki.net, maxroll.gg, official forums
 
 import json
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -40,10 +40,10 @@ class MechanicExplanation:
     detailed_explanation: str
     how_it_works: str
     calculation_formula: Optional[str] = None
-    examples: List[str] = None
-    common_questions: Dict[str, str] = None
-    related_mechanics: List[str] = None
-    important_notes: List[str] = None
+    examples: List[str] = field(default_factory=list)
+    common_questions: Dict[str, str] = field(default_factory=dict)
+    related_mechanics: List[str] = field(default_factory=list)
+    important_notes: List[str] = field(default_factory=list)
     changed_from_poe1: Optional[str] = None
 
     def __post_init__(self) -> None:
@@ -73,7 +73,7 @@ class PoE2MechanicsKnowledgeBase:
     def __init__(self, db_manager=None) -> None:
         self.mechanics: Dict[str, MechanicExplanation] = {}
         self.db_manager = db_manager
-        self._clientstrings_cache = {}
+        self._clientstrings_cache: Dict[str, Any] = {}
         self._initialize_mechanics()
 
     def _initialize_mechanics(self):
@@ -5260,7 +5260,8 @@ if __name__ == "__main__":
     print("Available mechanics:")
     for name in kb.list_all_mechanics():
         mechanic = kb.get_mechanic(name)
-        print(f"  - {name}: {mechanic.short_description}")
+        if mechanic:
+            print(f"  - {name}: {mechanic.short_description}")
 
     print()
     print("=" * 80)

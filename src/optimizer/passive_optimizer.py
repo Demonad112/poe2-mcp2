@@ -3,7 +3,7 @@
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 try:
     from ..config import DATA_DIR
@@ -19,7 +19,7 @@ class PassiveOptimizer:
     def __init__(self, db_manager) -> None:
         self.db_manager = db_manager
         self.passive_tree_extractor = None
-        self._merged_passive_tree = None
+        self._merged_passive_tree: Optional[Dict[str, Any]] = None
 
     def _initialize_extractor(self):
         """Lazy initialize the passive tree extractor"""
@@ -46,11 +46,10 @@ class PassiveOptimizer:
                 return {}
 
             with open(merged_tree_path, "r", encoding="utf-8") as f:
-                self._merged_passive_tree = json.load(f)
-                logger.info(
-                    f"Loaded {len(self._merged_passive_tree)} passive nodes from merged tree"
-                )
-                return self._merged_passive_tree
+                tree: Dict[str, Any] = json.load(f)
+                self._merged_passive_tree = tree
+                logger.info(f"Loaded {len(tree)} passive nodes from merged tree")
+                return tree
         except Exception as e:
             logger.error(f"Failed to load merged passive tree: {e}")
             return {}

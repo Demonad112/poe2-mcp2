@@ -67,17 +67,17 @@ class Datc64Parser:
     def read_int32(self, row: bytes, offset: int) -> int:
         if offset + 4 > len(row):
             return 0
-        return struct.unpack("<i", row[offset : offset + 4])[0]
+        return int(struct.unpack("<i", row[offset : offset + 4])[0])
 
     def read_int64(self, row: bytes, offset: int) -> int:
         if offset + 8 > len(row):
             return 0
-        return struct.unpack("<Q", row[offset : offset + 8])[0]
+        return int(struct.unpack("<Q", row[offset : offset + 8])[0])
 
     def read_float(self, row: bytes, offset: int) -> float:
         if offset + 4 > len(row):
             return 0.0
-        return struct.unpack("<f", row[offset : offset + 4])[0]
+        return float(struct.unpack("<f", row[offset : offset + 4])[0])
 
 
 class FreshDataProvider:
@@ -501,7 +501,7 @@ class FreshDataProvider:
     def get_passive_node_name(self, node_id: int) -> str:
         """Get passive node display name by row index."""
         if node_id in self._passive_skills:
-            return self._passive_skills[node_id].get("name", f"Node_{node_id}")
+            return str(self._passive_skills[node_id].get("name", f"Node_{node_id}"))
         return f"Node_{node_id}"
 
     def get_passive_by_id(self, skill_id: str) -> Optional[Dict]:

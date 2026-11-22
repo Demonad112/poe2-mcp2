@@ -438,7 +438,7 @@ class TimelessSeedMapper:
         """
         analysis = self.analyze_seed(socket_id, seed, tribute, radius)
 
-        distribution = {}
+        distribution: Dict[str, int] = {}
         for node in analysis.transformed_nodes:
             if node.original_type == "notable":
                 distribution[node.new_name] = distribution.get(node.new_name, 0) + 1

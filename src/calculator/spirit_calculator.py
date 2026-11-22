@@ -213,7 +213,7 @@ class SpiritReservation:
         Returns:
             List of optimization suggestions
         """
-        suggestions = []
+        suggestions: List[str] = []
 
         if not self.support_gems:
             suggestions.append("No support gems - cost is optimal")
@@ -691,7 +691,7 @@ class SpiritCalculator:
         Returns:
             List of optimization suggestions sorted by effectiveness
         """
-        suggestions = []
+        suggestions: List[SpiritOptimization] = []
 
         # If no target specified, use overflow amount
         if target_spirit_to_free is None:
@@ -755,7 +755,7 @@ class SpiritCalculator:
         Returns:
             List of actions taken
         """
-        actions = []
+        actions: List[str] = []
         overflow = self.get_overflow_amount()
 
         if overflow <= 0:

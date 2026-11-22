@@ -176,7 +176,8 @@ def load_passive_tree(file_path: Optional[Path] = None) -> Dict[str, Any]:
         file_path = Path(__file__).parent.parent.parent / "data" / "psg_passive_nodes.json"
 
     with open(file_path, "r", encoding="utf-8") as f:
-        return json.load(f)
+        nodes: Dict[str, Any] = json.load(f)
+        return nodes
 
 
 def get_jewel_sockets(tree_data: Dict[str, Any]) -> List[JewelSocket]:
@@ -361,7 +362,7 @@ def find_best_socket_for_notables(
 
     target_set = {n.lower() for n in target_notables}
     best_socket = None
-    best_matches = []
+    best_matches: List[str] = []
 
     for analysis in analyze_all_sockets(radius, tree_data):
         matches = [

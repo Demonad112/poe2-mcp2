@@ -10,7 +10,7 @@ Based on comprehensive research from:
 """
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ class SpellStats:
     damage_effectiveness: float = 1.0  # 100% by default
     base_crit_chance: float = 0.0  # 0-100%
     base_cast_time: float = 1.0  # seconds
-    damage_types: List[str] = None  # ['fire', 'cold', 'lightning', etc.]
+    damage_types: List[str] = field(default_factory=list)  # ['fire', 'cold', 'lightning', etc.]
     is_channelled: bool = False  # PoB: Channel skills are exempt from the server-tick speed cap
     repeats: int = 1  # PoB: server-tick cap is multiplied by the skill's Repeats
 
@@ -45,7 +45,9 @@ class CharacterModifiers:
     increased_crit_damage: float = 0.0
 
     # More/Less (multiplicative)
-    more_multipliers: List[float] = None  # List of more % values (e.g., [25, 30, 20])
+    more_multipliers: List[float] = field(
+        default_factory=list
+    )  # List of more % values (e.g., [25, 30, 20])
 
     # Added damage (flat)
     added_fire: float = 0.0

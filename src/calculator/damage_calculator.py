@@ -18,7 +18,7 @@ Version: 1.0.0
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -708,7 +708,7 @@ class DamageCalculator:
         increased_speed_modifiers: Optional[List[Modifier]] = None,
         crit_config: Optional[CriticalStrikeConfig] = None,
         is_spell: bool = False,
-    ) -> Dict[str, Union[float, DamageComponents]]:
+    ) -> Dict[str, Any]:
         """
         Calculate complete DPS with all modifiers for all damage types.
 
@@ -891,7 +891,9 @@ if __name__ == "__main__":
     print("Example 3: Damage Conversion")
     base_components = DamageComponents({DamageType.PHYSICAL: DamageRange(100, 200)})
 
-    conversions = {DamageType.PHYSICAL: {DamageType.FIRE: 50}}  # Convert 50% physical to fire
+    conversions: Dict[DamageType, Dict[DamageType, float]] = {
+        DamageType.PHYSICAL: {DamageType.FIRE: 50}
+    }  # Convert 50% physical to fire
 
     converted = calc.apply_damage_conversion(base_components, conversions)
     print("After 50% physical to fire conversion:")
