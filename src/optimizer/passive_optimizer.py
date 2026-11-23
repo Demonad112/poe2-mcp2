@@ -3,7 +3,7 @@
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 try:
     from ..config import DATA_DIR
@@ -18,21 +18,40 @@ class PassiveOptimizer:
 
     def __init__(self, db_manager) -> None:
         self.db_manager = db_manager
-        self.passive_tree_extractor = None
+        self.passive_tree_extractor: Optional[Any] = None
+        self.get_all_keystones: Callable[[], List[Dict[str, Any]]] = list
+        self.get_all_notables: Callable[[], List[Dict[str, Any]]] = list
         self._merged_passive_tree: Optional[Dict[str, Any]] = None
 
-    def _initialize_extractor(self):
-        """Lazy initialize the passive tree extractor"""
+    @staticmethod
+    def _node_to_dict(node: Any) -> Dict[str, Any]:
+        """Convert a ResolvedNode into the dict shape the merged-tree path uses."""
+        return {
+            "id": node.node_id,
+            "name": node.name,
+            "stats": list(node.stats),
+            "stats_source": "passive_tree_resolver",
+            "is_keystone": node.is_keystone,
+            "is_notable": node.is_notable,
+        }
+
+    def _initialize_extractor(self) -> None:
+        """Lazy initialize the fallback passive tree source (PassiveTreeResolver)."""
         if self.passive_tree_extractor is None:
             try:
-                from ..parsers import PassiveTreeExtractor, get_all_keystones, get_all_notables
+                from ..parsers.passive_tree_resolver import get_resolver
 
-                self.passive_tree_extractor = PassiveTreeExtractor(self.db_manager)
-                self.get_all_keystones = get_all_keystones
-                self.get_all_notables = get_all_notables
-                logger.info("Passive tree extractor initialized in PassiveOptimizer")
+                resolver = get_resolver()
+                self.passive_tree_extractor = resolver
+                self.get_all_keystones = lambda: [
+                    self._node_to_dict(n) for n in resolver.get_all_keystones()
+                ]
+                self.get_all_notables = lambda: [
+                    self._node_to_dict(n) for n in resolver.get_all_notables()
+                ]
+                logger.info("Passive tree resolver initialized in PassiveOptimizer")
             except Exception as e:
-                logger.warning(f"Failed to initialize passive tree extractor: {e}")
+                logger.warning(f"Failed to initialize passive tree resolver: {e}")
 
     def _load_merged_passive_tree(self) -> Dict[str, Any]:
         """Load merged passive tree data with human-readable stats"""
