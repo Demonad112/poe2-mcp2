@@ -98,3 +98,30 @@ def test_gzip_and_question_mark_wrapping():
 
     code = base64.urlsafe_b64encode(gzip.compress(XML.encode())).decode()
     assert PoBImporter().import_build_sync("?" + code + "?")["level"] == 90
+
+
+def test_export_roundtrip_is_valid_pob2():
+    import asyncio
+
+    from src.pob.exporter import PoBExporter
+
+    code = asyncio.run(
+        PoBExporter().export_build(
+            {
+                "name": "t",
+                "level": 90,
+                "class": "Witch",
+                "ascendancy": "Lich",
+                "passives": {"hashes": [10, 11]},
+            }
+        )
+    )
+    assert "+" not in code and "/" not in code
+    imp = PoBImporter()
+    xml = imp._decode_pob_code(code)
+    assert xml.startswith("<PathOfBuilding2")
+    assert 'targetVersion="0_1"' in xml
+    tree = imp.import_build_sync(code)["tree"]
+    assert tree["allocated_nodes"] == [10, 11]
+    assert tree["class_internal_id"] == "1"
+    assert tree["ascendancy_internal_id"] == "Witch3"
