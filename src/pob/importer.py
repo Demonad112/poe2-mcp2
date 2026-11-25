@@ -58,7 +58,9 @@ class PoBImporter:
             raise ValueError(f"Base64 decode failed for PoB code ({len(code)} chars): {e}")
 
         try:
-            decompressed = zlib.decompress(decoded, 47)  # 47: auto-detect zlib/gzip like PoB's Inflate
+            decompressed = zlib.decompress(
+                decoded, 47
+            )  # 47: auto-detect zlib/gzip like PoB's Inflate
         except zlib.error as e:
             raise ValueError(
                 f"PoB code base64-decoded cleanly ({len(decoded)} bytes) but zlib "
@@ -220,7 +222,9 @@ class PoBImporter:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _pick_set(parent: Optional[ET.Element], tag: str, active: Optional[str], by_index: bool = False):
+    def _pick_set(
+        parent: Optional[ET.Element], tag: str, active: Optional[str], by_index: bool = False
+    ):
         """Return the active child ``tag`` of ``parent`` (first one if unresolved).
 
         ``activeSpec`` is a 1-based index into the Spec list; the other
@@ -335,7 +339,7 @@ class PoBImporter:
         m = cls._TAG_RE.match(line)
         if m:
             tags = cls._TAG_ITEMS_RE.findall(m.group(0))
-            line = line[m.end():].strip()
+            line = line[m.end() :].strip()
         return {"text": line, "tags": tags}
 
     def _parse_item_text(self, text: str) -> Dict[str, Any]:
@@ -372,7 +376,7 @@ class PoBImporter:
         )
         if impl_idx is not None:
             n_impl = int(re.match(r"Implicits:\s*(\d+)", lines[impl_idx]).group(1))
-            for j, ln in enumerate(lines[impl_idx + 1:]):
+            for j, ln in enumerate(lines[impl_idx + 1 :]):
                 parsed = self._split_mod_line(ln)
                 parsed["implicit"] = j < n_impl
                 mod_lines.append(parsed)
@@ -600,7 +604,9 @@ class PoBImporter:
                 except ValueError:
                     stats[stat] = el.get("value")
         if not stats:
-            return {"note": "No PlayerStat in export; stats must be calculated or fetched from the character API"}
+            return {
+                "note": "No PlayerStat in export; stats must be calculated or fetched from the character API"
+            }
         return stats
 
     def _extract_extra_stats(self, root: ET.Element) -> Dict[str, Any]:
