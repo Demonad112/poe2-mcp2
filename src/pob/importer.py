@@ -6,6 +6,7 @@ Complete XML parser for PoB builds
 import base64
 import binascii
 import logging
+import re
 import xml.etree.ElementTree as ET
 import zlib
 from pathlib import Path
@@ -31,7 +32,7 @@ class PoBImporter:
         rather than raw binascii/zlib errors — agent callers reproduce long
         codes imperfectly and need to know WHERE it broke.
         """
-        code = "".join(pob_code.split())
+        code = "".join(pob_code.split()).strip("?")
         if not code:
             raise ValueError("PoB code is empty after stripping whitespace")
 
@@ -57,7 +58,7 @@ class PoBImporter:
             raise ValueError(f"Base64 decode failed for PoB code ({len(code)} chars): {e}")
 
         try:
-            decompressed = zlib.decompress(decoded)
+            decompressed = zlib.decompress(decoded, 47)  # 47: auto-detect zlib/gzip like PoB's Inflate
         except zlib.error as e:
             raise ValueError(
                 f"PoB code base64-decoded cleanly ({len(decoded)} bytes) but zlib "
@@ -81,6 +82,7 @@ class PoBImporter:
             "tree": self._parse_tree(root),
             "config": self._parse_config(root),
             "stats": self._extract_stats(root),
+            **{k: v for k, v in self._extract_extra_stats(root).items()},
             "notes": self._get_notes(root),
             "version": root.get("version", "Unknown"),
         }
@@ -213,15 +215,60 @@ class PoBImporter:
             return notes_elem.text
         return ""
 
+    # ------------------------------------------------------------------
+    # Active-set selection helpers (PoB stores several sets; one is active)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _pick_set(parent: Optional[ET.Element], tag: str, active: Optional[str], by_index: bool = False):
+        """Return the active child ``tag`` of ``parent`` (first one if unresolved).
+
+        ``activeSpec`` is a 1-based index into the Spec list; the other
+        ``active*Set`` attributes match the child's ``id``.
+        """
+        if parent is None:
+            return None
+        children = parent.findall(tag)
+        if not children:
+            return None
+        if active:
+            if by_index:
+                try:
+                    idx = int(active) - 1
+                    if 0 <= idx < len(children):
+                        return children[idx]
+                except ValueError:
+                    pass
+            else:
+                for child in children:
+                    if child.get("id") == active:
+                        return child
+        return children[0]
+
+    @staticmethod
+    def _typed_input(elem: ET.Element) -> Any:
+        """Config <Input>/<Placeholder> value with PoB's own typing."""
+        if elem.get("boolean") is not None:
+            return elem.get("boolean") == "true"
+        if elem.get("number") is not None:
+            try:
+                num = float(elem.get("number"))
+            except ValueError:
+                return elem.get("number")
+            return int(num) if num.is_integer() else num
+        return elem.get("string")
+
+    # ------------------------------------------------------------------
+    # Items
+    # ------------------------------------------------------------------
+
     def _parse_items(self, root: ET.Element) -> List[Dict[str, Any]]:
         """
         Parse items from PoB XML.
 
-        Items live in <Items> as <Item id=N> elements WITHOUT slot
-        attributes — the equipped-slot assignments live separately in
-        <ItemSet><Slot name="Gloves" itemId="9"/>. Build the id->slot map
-        from the (first/default) ItemSet so equipped items carry their
-        slot; unassigned items (spares/swaps) keep slot=None.
+        <Item id=N> elements carry no slot; slot assignments live in the
+        ACTIVE <ItemSet> (``activeItemSet``) as <Slot name itemId>. Unassigned
+        items (spares/swaps) keep slot=None.
         """
         items: List[Dict[str, Any]] = []
         items_elem = root.find("./Items")
@@ -229,11 +276,11 @@ class PoBImporter:
         if items_elem is None:
             return items
 
-        # id -> slot name from the default ItemSet's Slot assignments
-        slot_by_item_id: Dict[str, str] = {}
-        item_set = items_elem.find("ItemSet")
-        if item_set is None:  # Element truthiness is child-count, so test None explicitly
+        item_set = self._pick_set(items_elem, "ItemSet", items_elem.get("activeItemSet"))
+        if item_set is None:
             item_set = root.find(".//ItemSet")
+
+        slot_by_item_id: Dict[str, str] = {}
         if item_set is not None:
             for slot_elem in item_set.findall("Slot"):
                 item_id = slot_elem.get("itemId")
@@ -251,11 +298,8 @@ class PoBImporter:
                 "raw_text": item_elem.text or "",
                 "enabled": item_elem.get("enabled", "1") == "1",
             }
-
-            # Parse item text to extract properties
             if item_data["raw_text"]:
                 item_data.update(self._parse_item_text(item_data["raw_text"]))
-
             items.append(item_data)
 
         return items
@@ -266,12 +310,8 @@ class PoBImporter:
 
         PoE2 weapon swap: "Weapon 1"/"Weapon 2" are weapon set 1;
         "Weapon 1 Swap"/"Weapon 2 Swap" are weapon set 2. Only ONE set is
-        active at a time, so set-specific weapon stats (e.g. a staff's
-        +%% chaos, +spirit) apply only while that set is equipped — a
-        consumer flattening both sets into one gear list will wrongly
-        attribute swap-set stats to the active build (the #182-era
-        analyze_character bug). Non-weapon slots return None (always
-        equipped, set-independent).
+        active at a time, so set-specific weapon stats apply only while that
+        set is equipped. Non-weapon slots return None.
         """
         if not slot:
             return None
@@ -283,22 +323,28 @@ class PoBImporter:
 
     def _get_item_slot(self, item_elem: ET.Element) -> Optional[str]:
         """Determine which slot an item is equipped in"""
-        # PoB uses item set slots like "Weapon 1", "Body Armour", etc.
         return item_elem.get("slot")
+
+    _TAG_RE = re.compile(r"^(\{[^}]*\})+")
+    _TAG_ITEMS_RE = re.compile(r"\{([^}]*)\}")
+
+    @classmethod
+    def _split_mod_line(cls, line: str) -> Dict[str, Any]:
+        """Strip leading ``{range:…}{crafted}…`` tags from a mod line."""
+        tags: List[str] = []
+        m = cls._TAG_RE.match(line)
+        if m:
+            tags = cls._TAG_ITEMS_RE.findall(m.group(0))
+            line = line[m.end():].strip()
+        return {"text": line, "tags": tags}
 
     def _parse_item_text(self, text: str) -> Dict[str, Any]:
         """
-        Parse PoB item text format (in-game tooltip shape):
+        Parse PoB item text (name follows the Rarity line, base type after).
 
-            Rarity: UNIQUE
-            The Dark Defiler          <- item NAME
-            Rattling Sceptre          <- base type
-            ...stats/mods...
-
-        The name is the line AFTER the Rarity line (the old code took the
-        first line, which IS the Rarity line — every item rendered as
-        'Rarity: UNIQUE'). Lines arrive indented/blank-padded in real
-        exports, so each is stripped first.
+        ``Implicits: N`` marks the next N lines as implicit mods; everything
+        after them is explicit. Leading ``{…}`` tags (range/crafted/rune/…)
+        are stripped from mod text and kept in ``mod_lines``.
         """
         lines = [ln.strip() for ln in text.strip().split("\n") if ln.strip()]
         if not lines:
@@ -306,7 +352,6 @@ class PoBImporter:
 
         name = "Unknown"
         base_type = ""
-        # Locate the Rarity line; name and base type follow it
         rarity_idx = next(
             (i for i, ln in enumerate(lines) if ln.lower().startswith("rarity:")),
             None,
@@ -314,12 +359,24 @@ class PoBImporter:
         if rarity_idx is not None and rarity_idx + 1 < len(lines):
             name = lines[rarity_idx + 1]
             candidate = lines[rarity_idx + 2] if rarity_idx + 2 < len(lines) else ""
-            # The base-type line never contains ':' (metadata lines do) and
-            # Normal/Magic items have no separate name line to follow
             if candidate and ":" not in candidate:
                 base_type = candidate
         elif lines:
             name = lines[0]
+
+        implicits: List[str] = []
+        explicits: List[str] = []
+        mod_lines: List[Dict[str, Any]] = []
+        impl_idx = next(
+            (i for i, ln in enumerate(lines) if re.match(r"Implicits:\s*\d+", ln)), None
+        )
+        if impl_idx is not None:
+            n_impl = int(re.match(r"Implicits:\s*(\d+)", lines[impl_idx]).group(1))
+            for j, ln in enumerate(lines[impl_idx + 1:]):
+                parsed = self._split_mod_line(ln)
+                parsed["implicit"] = j < n_impl
+                mod_lines.append(parsed)
+                (implicits if j < n_impl else explicits).append(parsed["text"])
 
         return {
             "name": name,
@@ -329,13 +386,14 @@ class PoBImporter:
             "rarity": self._extract_rarity(text),
             "requirements": self._extract_requirements(text),
             "mods": self._extract_mods(text),
+            "implicits": implicits,
+            "explicits": explicits,
+            "mod_lines": mod_lines,
             "full_text": text,
         }
 
     def _extract_item_level(self, text: str) -> int:
         """Extract item level from text"""
-        import re
-
         match = re.search(r"Item Level: (\d+)", text)
         return int(match.group(1)) if match else 0
 
@@ -351,8 +409,6 @@ class PoBImporter:
 
     def _extract_requirements(self, text: str) -> Dict[str, int]:
         """Extract stat requirements"""
-        import re
-
         reqs = {}
 
         str_match = re.search(r"Requires Level \d+.*?(\d+) Str", text)
@@ -370,110 +426,193 @@ class PoBImporter:
         return reqs
 
     def _extract_mods(self, text: str) -> List[str]:
-        """Extract item mods/affixes"""
-        # This is simplified - full implementation would parse all mod lines
-        lines = text.split("\n")
+        """Heuristic mod-line list (tag-stripped). Prefer ``implicits``/``explicits``."""
         mods = []
-
-        # Skip header lines and find mod lines (usually between separators)
-        in_mods = False
-        for line in lines:
-            line = line.strip()
+        for line in text.split("\n"):
+            line = self._split_mod_line(line.strip())["text"]
             if not line:
                 continue
-            # Mod lines typically contain numbers and stats
-            if any(char.isdigit() for char in line) and "+" in line or "%" in line:
+            # Mod lines carry a number plus '+' or '%' (parenthesised to fix the
+            # old `a and b or c` precedence bug that admitted any '%' line)
+            if any(ch.isdigit() for ch in line) and ("+" in line or "%" in line):
                 mods.append(line)
-
         return mods
 
+    # ------------------------------------------------------------------
+    # Skills
+    # ------------------------------------------------------------------
+
     def _parse_skills(self, root: ET.Element) -> List[Dict[str, Any]]:
-        """
-        Parse skills from PoB XML
-        Skills are grouped with their support gems
-        """
+        """Parse skill groups from the ACTIVE <SkillSet> (legacy: direct <Skill>)."""
         skills: List[Dict[str, Any]] = []
         skills_elem = root.find("./Skills")
-
         if skills_elem is None:
             return skills
 
-        for skill_set in skills_elem.findall("SkillSet"):
-            for skill in skill_set.findall("Skill"):
-                skill_data: Dict[str, Any] = {
-                    "label": skill.get("label", ""),
-                    "enabled": skill.get("enabled", "true") == "true",
-                    "slot": skill.get("slot"),
-                    "gems": [],
-                }
+        skill_set = self._pick_set(skills_elem, "SkillSet", skills_elem.get("activeSkillSet"))
+        container = skill_set if skill_set is not None else skills_elem
 
-                # Parse gems in this skill group
-                for gem in skill.findall("Gem"):
-                    gem_data = {
+        for skill in container.findall("Skill"):
+            skill_data: Dict[str, Any] = {
+                "label": skill.get("label", ""),
+                "enabled": skill.get("enabled", "true") == "true",
+                "slot": skill.get("slot"),
+                "main_active_skill": skill.get("mainActiveSkill"),
+                "gems": [],
+            }
+            for gem in skill.findall("Gem"):
+                skill_data["gems"].append(
+                    {
                         "name": gem.get("nameSpec", gem.get("gemId", "Unknown")),
                         "level": int(gem.get("level", 1)),
                         "quality": int(gem.get("quality", 0)),
                         "enabled": gem.get("enabled", "true") == "true",
                         "skill_id": gem.get("skillId"),
+                        "gem_id": gem.get("gemId"),
+                        "variant_id": gem.get("variantId"),
+                        "count": int(gem.get("count", 1)),
                     }
-                    skill_data["gems"].append(gem_data)
-
-                skills.append(skill_data)
+                )
+            skills.append(skill_data)
 
         return skills
 
+    # ------------------------------------------------------------------
+    # Tree
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _int_list(csv: Optional[str]) -> List[int]:
+        return [int(n) for n in (csv or "").split(",") if n.strip().lstrip("-").isdigit()]
+
     def _parse_tree(self, root: ET.Element) -> Dict[str, Any]:
-        """
-        Parse passive tree data
-        """
+        """Parse the ACTIVE passive spec (``activeSpec`` is a 1-based index)."""
         tree_elem = root.find("./Tree")
         if tree_elem is None:
             return {}
 
-        # Parse allocated nodes
-        spec_elem = tree_elem.find("Spec")
-        allocated_nodes = []
-
-        if spec_elem is not None:
-            nodes_str = spec_elem.get("nodes", "")
-            if nodes_str:
-                allocated_nodes = [int(node) for node in nodes_str.split(",") if node.strip()]
-
-        tree_data = {
-            "allocated_nodes": allocated_nodes,
-            "total_points": len(allocated_nodes),
-            "ascendancy_nodes": [],  # Could parse separately
-            "mastery_effects": {},  # PoE 2 masteries
+        spec = self._pick_set(tree_elem, "Spec", tree_elem.get("activeSpec"), by_index=True)
+        allocated: List[int] = []
+        tree_data: Dict[str, Any] = {
+            "allocated_nodes": allocated,
+            "total_points": 0,
+            "ascendancy_nodes": [],
+            "mastery_effects": {},
         }
+        if spec is None:
+            return tree_data
+
+        allocated.extend(self._int_list(spec.get("nodes")))
+        tree_data["total_points"] = len(allocated)
+        tree_data["tree_version"] = spec.get("treeVersion")
+        tree_data["class_internal_id"] = spec.get("classInternalId")
+        tree_data["ascendancy_internal_id"] = spec.get("ascendancyInternalId")
+        tree_data["title"] = spec.get("title")
+
+        # masteryEffects="{node,effect},{node,effect}" (PoB: {nodeId,effectId} pairs)
+        for node, effect in re.findall(r"\{(\d+),(\d+)\}", spec.get("masteryEffects", "")):
+            tree_data["mastery_effects"][int(node)] = int(effect)
+
+        for n in (1, 2):
+            ws = spec.find(f"WeaponSet{n}")
+            if ws is not None:
+                tree_data[f"weapon_set_{n}_nodes"] = self._int_list(ws.get("nodes"))
+
+        tree_data["jewel_sockets"] = {
+            int(s.get("nodeId")): s.get("itemId")
+            for s in spec.findall("./Sockets/Socket")
+            if (s.get("nodeId") or "").isdigit()
+        }
+
+        overrides = spec.find("Overrides")
+        if overrides is not None:
+            tree_data["attribute_overrides"] = {
+                attr: self._int_list(ao.get(f"{attr}Nodes"))
+                for ao in overrides.findall("AttributeOverride")
+                for attr in ("str", "dex", "int")
+            }
+
+        url = spec.find("URL")
+        if url is not None and url.text:
+            tree_data["url"] = url.text.strip()
 
         return tree_data
 
+    # ------------------------------------------------------------------
+    # Config / stats
+    # ------------------------------------------------------------------
+
     def _parse_config(self, root: ET.Element) -> Dict[str, Any]:
         """
-        Parse configuration options
-        These affect calculations (boss, map mods, etc.)
+        Parse the ACTIVE <ConfigSet> (legacy: <Input> directly under <Config>).
+
+        Returns ``{"inputs", "placeholders", "custom_mods", "active_set"}`` with
+        PoB-typed values (bool/int/float/str). Only non-default inputs are
+        written by PoB, so absent options mean "default".
         """
-        config = {}
+        result: Dict[str, Any] = {
+            "inputs": {},
+            "placeholders": {},
+            "custom_mods": [],
+            "active_set": None,
+        }
         config_elem = root.find("./Config")
+        if config_elem is None:
+            return result
 
-        if config_elem is not None:
-            for input_elem in config_elem.findall("Input"):
-                name = input_elem.get("name")
-                value = (
-                    input_elem.get("string")
-                    or input_elem.get("number")
-                    or input_elem.get("boolean")
-                )
-                if name:
-                    config[name] = value
+        cfg_set = self._pick_set(config_elem, "ConfigSet", config_elem.get("activeConfigSet"))
+        container = cfg_set if cfg_set is not None else config_elem
+        if cfg_set is not None:
+            result["active_set"] = cfg_set.get("id")
 
-        return config
+        for el in container.findall("Input"):
+            if el.get("name"):
+                result["inputs"][el.get("name")] = self._typed_input(el)
+        for el in container.findall("Placeholder"):
+            if el.get("name"):
+                result["placeholders"][el.get("name")] = self._typed_input(el)
+        for el in container.findall("CustomModifierBlock"):
+            result["custom_mods"].append(
+                {
+                    "title": el.get("title", ""),
+                    "enabled": el.get("enabled", "true") != "false",
+                    "lines": [ln.strip() for ln in (el.text or "").split("\n") if ln.strip()],
+                }
+            )
+        return result
 
     def _extract_stats(self, root: ET.Element) -> Dict[str, Any]:
         """
-        Extract calculated stats if available
-        Note: PoB calculates these, they're not always in the XML
+        PoB's own calculated numbers from <Build>: PlayerStat (output only —
+        PoB ignores them on load). Values are floats where numeric.
+        MinionStat / FullDPSSkill are exposed via ``_extract_extra_stats``.
+        Falls back to a note when the export carried no calcs.
         """
-        # This is a placeholder - actual stat extraction would require
-        # running PoB's calculation engine or parsing build notes
-        return {"note": "Stats must be calculated using PoB engine or extracted from character API"}
+        build = root.find("./Build")
+        stats: Dict[str, Any] = {}
+        if build is not None:
+            for el in build.findall("PlayerStat"):
+                stat = el.get("stat")
+                if not stat:
+                    continue
+                try:
+                    stats[stat] = float(el.get("value", ""))
+                except ValueError:
+                    stats[stat] = el.get("value")
+        if not stats:
+            return {"note": "No PlayerStat in export; stats must be calculated or fetched from the character API"}
+        return stats
+
+    def _extract_extra_stats(self, root: ET.Element) -> Dict[str, Any]:
+        build = root.find("./Build")
+        out: Dict[str, Any] = {"minion_stats": {}, "full_dps_skills": []}
+        if build is None:
+            return out
+        for el in build.findall("MinionStat"):
+            try:
+                out["minion_stats"][el.get("stat")] = float(el.get("value", ""))
+            except ValueError:
+                out["minion_stats"][el.get("stat")] = el.get("value")
+        for el in build.findall("FullDPSSkill"):
+            out["full_dps_skills"].append(dict(el.attrib))
+        return out

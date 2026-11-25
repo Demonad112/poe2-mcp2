@@ -318,7 +318,10 @@ class PoBXMLGenerator:
         input_elem.set("string", "Pinnacle")
 
         # Add any custom config from data
-        config_data = data.get("config", {})
+        config_data = data.get("config", {}) or {}
+        # Importer now returns {"inputs": {...}, "placeholders": ..., ...}
+        if isinstance(config_data.get("inputs"), dict):
+            config_data = config_data["inputs"]
         for key, value in config_data.items():
             inp = ET.SubElement(config, "Input")
             inp.set("name", key)
