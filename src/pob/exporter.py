@@ -2,45 +2,35 @@
 
 import base64
 import logging
-import xml.etree.ElementTree as ET
 import zlib
 from typing import Any, Dict
+
+from .xml_generator import PoBXMLGenerator
 
 logger = logging.getLogger(__name__)
 
 
 class PoBExporter:
-    """Export builds to Path of Building format"""
+    """Export builds to Path of Building 2 share-code format"""
 
     async def export_build(self, character_data: Dict[str, Any]) -> str:
         """
-        Export character to PoB format
+        Export character to a PoB2 share code.
+
+        Encoding matches PoB's ImportTab: XML -> zlib (level 9) -> base64
+        with ``+``/``/`` swapped for ``-``/``_`` (padding kept).
 
         Args:
             character_data: Character data to export
 
         Returns:
-            Base64-encoded PoB build code
+            PoB share code
         """
         try:
-            # Create XML structure
-            root = ET.Element("PathOfBuilding")
-
-            # Add character data
-            build = ET.SubElement(root, "Build")
-            build.set("name", character_data.get("name", "Exported Build"))
-            build.set("className", character_data.get("class", "Unknown"))
-            build.set("level", str(character_data.get("level", 1)))
-
-            # Convert to string
-            xml_str = ET.tostring(root, encoding="utf-8")
-
-            # Compress and encode
-            compressed = zlib.compress(xml_str)
-            encoded = base64.b64encode(compressed).decode("utf-8")
-
-            return encoded
-
+            xml_str = PoBXMLGenerator().generate(character_data)
+            compressed = zlib.compress(xml_str.encode("utf-8"), 9)
+            encoded = base64.b64encode(compressed).decode("ascii")
+            return encoded.replace("+", "-").replace("/", "_")
         except Exception as e:
             logger.error(f"PoB export failed: {e}")
             raise ValueError(f"Export failed: {str(e)}")

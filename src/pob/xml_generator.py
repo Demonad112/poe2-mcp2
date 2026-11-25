@@ -21,43 +21,47 @@ class PoBXMLGenerator:
     Supports conversion from poe.ninja character format to PoB XML.
     """
 
-    # Class name to ID mapping
+    # PoB2 tree 0_5 (`classes[].integerId`): written as Spec@classInternalId
     CLASS_IDS = {
-        "Warrior": 0,
-        "Ranger": 1,
-        "Witch": 2,
-        "Duelist": 3,
-        "Marauder": 4,
-        "Shadow": 5,
-        "Templar": 6,
-        "Mercenary": 7,
-        "Monk": 8,
-        "Huntress": 9,
-        "Sorceress": 10,
+        "Witch": 1,
+        "Ranger": 2,
+        "Warrior": 6,
+        "Sorceress": 7,
+        "Huntress": 8,
+        "Mercenary": 9,
+        "Monk": 10,
         "Druid": 11,
     }
 
-    # Ascendancy to ID mapping (within class)
-    ASCENDANCY_IDS = {
-        # Warrior
-        "Titan": 1,
-        "Warbringer": 2,
-        # Ranger
-        "Deadeye": 1,
-        "Pathfinder": 2,
-        # Witch
-        "Lich": 1,
-        "Infernalist": 2,
-        # Mercenary
-        "Witchhunter": 1,
-        "Gemling Legionnaire": 2,
-        # Monk
-        "Invoker": 1,
-        "Acolyte of Chayula": 2,
-        # Sorceress
-        "Stormweaver": 1,
-        "Chronomancer": 2,
+    # PoB2 tree 0_5 (`classes[].ascendancies[].internalId`): Spec@ascendancyInternalId
+    ASCENDANCY_INTERNAL_IDS = {
+        "Deadeye": "Ranger1",
+        "Pathfinder": "Ranger3",
+        "Amazon": "Huntress1",
+        "Spirit Walker": "Huntress2",
+        "Ritualist": "Huntress3",
+        "Titan": "Warrior1",
+        "Warbringer": "Warrior2",
+        "Smith of Kitava": "Warrior3",
+        "Tactician": "Mercenary1",
+        "Witchhunter": "Mercenary2",
+        "Gemling Legionnaire": "Mercenary3",
+        "Oracle": "Druid1",
+        "Shaman": "Druid2",
+        "Infernalist": "Witch1",
+        "Blood Mage": "Witch2",
+        "Lich": "Witch3",
+        "Abyssal Lich": "Witch3b",
+        "Stormweaver": "Sorceress1",
+        "Chronomancer": "Sorceress2",
+        "Disciple of Varashta": "Sorceress3",
+        "Martial Artist": "Monk1",
+        "Invoker": "Monk2",
+        "Acolyte of Chayula": "Monk3",
     }
+
+    TARGET_VERSION = "0_1"  # Build@targetVersion PoB2 accepts without conversion popup
+    TREE_VERSION = "0_5"
 
     # Slot name mapping from poe.ninja to PoB
     SLOT_MAPPING = {
@@ -105,11 +109,7 @@ class PoBXMLGenerator:
         # Import section (for reference)
         self._add_import_section(root, character_data)
 
-        # Spec section (passive tree)
-        if "passives" in character_data:
-            self._add_spec_section(root, character_data)
-
-        # Tree section (wrapper for multiple specs)
+        # Tree section (Spec lives under Tree; a root-level Spec is ignored by PoB)
         self._add_tree_section(root, character_data)
 
         # Items section
@@ -132,7 +132,7 @@ class PoBXMLGenerator:
     def _add_build_section(self, root: ET.Element, data: Dict[str, Any]):
         """Add Build element with character metadata."""
         build = ET.SubElement(root, "Build")
-        build.set("targetVersion", "0_3")
+        build.set("targetVersion", self.TARGET_VERSION)
         build.set("level", str(data.get("level", 1)))
         build.set("className", data.get("class", "Warrior"))
 
@@ -153,25 +153,24 @@ class PoBXMLGenerator:
                 "importLink", f"https://poe.ninja/poe2/builds/char/{account}/{character}"
             )
 
-    def _add_spec_section(self, root: ET.Element, data: Dict[str, Any]):
-        """Add Spec element with passive tree allocation."""
-        spec = ET.SubElement(root, "Spec")
+    def _add_tree_section(self, root: ET.Element, data: Dict[str, Any]):
+        """Add Tree/Spec (passive allocation, class, ascendancy, jewel sockets)."""
+        tree = ET.SubElement(root, "Tree")
+        tree.set("activeSpec", "1")
 
         passives = data.get("passives", {})
         hashes = passives.get("hashes", [])
 
-        # Convert to comma-separated string
+        spec = ET.SubElement(tree, "Spec")
+        spec.set("title", "Main")
+        spec.set("treeVersion", self.TREE_VERSION)
         spec.set("nodes", ",".join(str(h) for h in hashes))
 
         class_name = data.get("class", "Warrior")
-        spec.set("classId", str(self.CLASS_IDS.get(class_name, 0)))
-
+        spec.set("classInternalId", str(self.CLASS_IDS.get(class_name, 0)))
         ascendancy = data.get("ascendancy", "")
-        spec.set("ascendClassId", str(self.ASCENDANCY_IDS.get(ascendancy, 0)))
+        spec.set("ascendancyInternalId", self.ASCENDANCY_INTERNAL_IDS.get(ascendancy, ""))
 
-        spec.set("treeVersion", "0_3")
-
-        # Add jewel sockets if present
         jewel_data = passives.get("jewel_data", {})
         if jewel_data:
             sockets = ET.SubElement(spec, "Sockets")
@@ -180,25 +179,6 @@ class PoBXMLGenerator:
                 socket_elem.set("nodeId", str(node_id))
                 if "itemId" in jewel_info:
                     socket_elem.set("itemId", str(jewel_info["itemId"]))
-
-    def _add_tree_section(self, root: ET.Element, data: Dict[str, Any]):
-        """Add Tree element (wrapper for spec list)."""
-        tree = ET.SubElement(root, "Tree")
-        tree.set("activeSpec", "1")
-
-        # Create spec entry
-        passives = data.get("passives", {})
-        hashes = passives.get("hashes", [])
-
-        spec = ET.SubElement(tree, "Spec")
-        spec.set("title", "Main")
-        spec.set("nodes", ",".join(str(h) for h in hashes))
-
-        class_name = data.get("class", "Warrior")
-        spec.set("classId", str(self.CLASS_IDS.get(class_name, 0)))
-
-        ascendancy = data.get("ascendancy", "")
-        spec.set("ascendClassId", str(self.ASCENDANCY_IDS.get(ascendancy, 0)))
 
     def _add_items_section(self, root: ET.Element, data: Dict[str, Any]):
         """Add Items element with equipment."""
@@ -318,7 +298,10 @@ class PoBXMLGenerator:
         input_elem.set("string", "Pinnacle")
 
         # Add any custom config from data
-        config_data = data.get("config", {})
+        config_data = data.get("config", {}) or {}
+        # Importer now returns {"inputs": {...}, "placeholders": ..., ...}
+        if isinstance(config_data.get("inputs"), dict):
+            config_data = config_data["inputs"]
         for key, value in config_data.items():
             inp = ET.SubElement(config, "Input")
             inp.set("name", key)
