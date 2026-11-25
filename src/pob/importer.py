@@ -254,11 +254,12 @@ class PoBImporter:
         """Config <Input>/<Placeholder> value with PoB's own typing."""
         if elem.get("boolean") is not None:
             return elem.get("boolean") == "true"
-        if elem.get("number") is not None:
+        raw_num = elem.get("number")
+        if raw_num is not None:
             try:
-                num = float(elem.get("number"))
+                num = float(raw_num)
             except ValueError:
-                return elem.get("number")
+                return raw_num
             return int(num) if num.is_integer() else num
         return elem.get("string")
 
@@ -371,11 +372,14 @@ class PoBImporter:
         implicits: List[str] = []
         explicits: List[str] = []
         mod_lines: List[Dict[str, Any]] = []
-        impl_idx = next(
-            (i for i, ln in enumerate(lines) if re.match(r"Implicits:\s*\d+", ln)), None
-        )
+        impl_idx: Optional[int] = None
+        n_impl = 0
+        for i, ln in enumerate(lines):
+            m = re.match(r"Implicits:\s*(\d+)", ln)
+            if m:
+                impl_idx, n_impl = i, int(m.group(1))
+                break
         if impl_idx is not None:
-            n_impl = int(re.match(r"Implicits:\s*(\d+)", lines[impl_idx]).group(1))
             for j, ln in enumerate(lines[impl_idx + 1 :]):
                 parsed = self._split_mod_line(ln)
                 parsed["implicit"] = j < n_impl
