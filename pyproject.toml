@@ -82,6 +82,7 @@ dev = [
     "flake8>=6.1.0",
     "mypy>=1.7.0",
     "isort>=5.12.0",
+    "lupa>=2.0",  # scripts/export_pob_data.py (build-time Lua -> JSON export)
 ]
 all = ["poe2-mcp[trade,dev]"]
 

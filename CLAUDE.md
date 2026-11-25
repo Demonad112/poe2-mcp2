@@ -61,3 +61,4 @@ available in cloud sessions; use `headless_pob_calc` instead when it reports `re
 - Python 3.9+; deps in `requirements.txt` (`mcp<2`). Install into the venv via
   `scripts/cloud_setup.sh` (system-Python install can fail on `ratelimit`).
 - Tests: `"$(bash scripts/cloud_setup.sh)" -m pytest -m "not (network or pob_required or requires_game_data)"`
+- `data/pob/*.json` is generated from the pinned PoB2 Lua (`scripts/export_pob_data.py`, needs `lupa`); regenerate with it, verify with `--check`. See `data/pob/README.md`.
